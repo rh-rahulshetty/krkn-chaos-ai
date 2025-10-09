@@ -36,6 +36,9 @@ class SynFloodScenarioConfig(BaseModel):
 
 class PVCScenarioConfig(BaseModel):
     enable: bool = False
+    
+class KubevirtScenarioConfig(BaseModel):
+    enable: bool = False
 
 class ScenarioConfig(BaseModel):
     application_outages: Optional[AppOutageScenarioConfig] = Field(
@@ -70,6 +73,9 @@ class ScenarioConfig(BaseModel):
     )
     pvc_scenarios: Optional[PVCScenarioConfig] = Field(
         alias="pvc-scenarios", default=None
+    )
+    kubevirt_scenarios: Optional[KubevirtScenarioConfig] = Field(
+        alias="kubevirt-scenarios", default=None
     )
 
 

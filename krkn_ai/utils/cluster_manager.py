@@ -16,6 +16,8 @@ from krkn_ai.models.cluster_components import (
     Service,
     ServicePort,
 )
+from krkn_ai.utils.logger import get_module_logger
+from krkn_ai.models.cluster_components import ClusterComponents, Container, Namespace, Node, Pod, VMI
 
 logger = get_logger(__name__)
 
@@ -44,6 +46,9 @@ class ClusterManager:
             namespaces[i].pods = pods
             namespaces[i].services = self.list_services(namespace)
             namespaces[i].pvcs = self.list_pvcs(namespace)
+
+            vms = self.list_vms(namespace)
+            namespaces[i].vms = vms
 
         return ClusterComponents(
             namespaces=namespaces,
@@ -160,6 +165,24 @@ class ClusterManager:
                 )
             )
         return containers
+
+    def list_vmis(self, namespace: Namespace) -> List[VMI]:
+
+        vmis_response = self.custom_obj_api.list_namespaced_custom_object("kubevirt.io","v1",namespace.name,"virtualmachineinstances")
+        vmis = vmis_response.get("items", [])
+        vmi_list = []
+        if vmis:
+            logger.debug("Found %d vmis in namespace %s", len(vmis), vmis[0]["metadata"]["name"])
+        else:
+            logger.debug("No VMIs found in namespace %s", namespace.name)
+        for vmi in vmis:
+            vmi_component = VMI(
+                name=vmi["metadata"]["name"]
+            )
+            vmi_list.append(vmi_component)
+
+        logger.debug("Filtered %d vmis in namespace %s", len(vmi_list), namespace.name)
+        return vmi_list
 
     def list_nodes(self, node_label_pattern: str = None) -> List[Node]:
         node_label_pattern = list(set(self.__process_pattern(node_label_pattern) + ["kubernetes.io/hostname"]))

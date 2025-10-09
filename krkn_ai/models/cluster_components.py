@@ -27,11 +27,15 @@ class Service(BaseModel):
     ports: List[ServicePort] = []
 
 
+class VMI(BaseModel):
+    name: str
+
 class Namespace(BaseModel):
     name: str
     pods: List[Pod] = []
     services: List[Service] = []
     pvcs: List[PVC] = []
+    vmis: List[VMI] = []
 
 class Node(BaseModel):
     name: str

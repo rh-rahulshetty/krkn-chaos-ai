@@ -44,38 +44,34 @@ class KillTimeoutParameter(BaseParameter):
     krknctl_name: str = "kill-timeout"
     value: int = 60
 
+class TimeoutParameter(BaseParameter):
+    name: str = "TIMEOUT"
+    value: int = 60
 
 class ExpRecoveryTimeParameter(BaseParameter):
     krknhub_name: str = "EXPECTED_RECOVERY_TIME"
     krknctl_name: str = "expected-recovery-time"
     value: int = 60
 
-
-
 class DurationParameter(BaseParameter):
     krknhub_name: str = "DURATION"
     krknctl_name: str = "chaos-duration"
     value: int = 60
-
-
 
 class PodSelectorParameter(BaseParameter):
     krknhub_name: str = "POD_SELECTOR"
     krknctl_name: str = "pod-selector"
     value: str = "" # Format: {app: foo}
 
-
 class BlockTrafficType(BaseParameter):
     krknhub_name: str = "BLOCK_TRAFFIC_TYPE"
     krknctl_name: str = "block-traffic-type"
     value: str = "[Ingress, Egress]" # "[Ingress, Egress]", "[Ingress]", "[Egress]"
 
-
 class LabelSelectorParameter(BaseParameter):
     krknhub_name: str = "LABEL_SELECTOR"
     krknctl_name: str = "label-selector"
     value: str = "" # Example Value: k8s-app=etcd
-
 
 class ContainerNameParameter(BaseParameter):
     krknhub_name: str = "CONTAINER_NAME"
@@ -88,18 +84,15 @@ class ActionParameter(BaseParameter):
     value: str = "1"
     # possible_values = ["1", "9"]
 
-
 class TotalChaosDurationParameter(BaseParameter):
     krknhub_name: str = "TOTAL_CHAOS_DURATION"
     krknctl_name: str = "chaos-duration"
     value: int = 60
 
-
 class NodeCPUCoreParameter(BaseParameter):
     krknhub_name: str = "NODE_CPU_CORE"
     krknctl_name: str = "cores"
     value: float = 2
-
 
 class NodeCPUPercentageParameter(BaseParameter):
     '''
@@ -452,3 +445,10 @@ class NodeMountPathParameter(BaseParameter):
     krknctl_name: str = "node-mount-path"
     value: str = "/root"
 
+class VMNameParameter(BaseParameter):
+    name: str = "VM_NAME"
+    value: str = ""
+
+class KillCountParameter(BaseParameter):
+    name: str = "KILL_COUNT"
+    value: int = 1
