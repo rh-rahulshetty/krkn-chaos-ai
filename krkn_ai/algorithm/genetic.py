@@ -16,6 +16,7 @@ from krkn_ai.utils.logger import get_logger
 from krkn_ai.chaos_engines.krkn_runner import KrknRunner
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.custom_errors import PopulationSizeError
+from krkn_ai.utils.output import format_result_filename
 
 logger = get_logger(__name__)
 
@@ -315,33 +316,13 @@ class GeneticAlgorithm:
             config_data = self.config.model_dump(mode='json')
             yaml.dump(config_data, f, sort_keys=False)
 
-    def _format_output_filename(self, fmt: str, generation_id: int, scenario_id: int, scenario_name: str) -> str:
-        """
-        Format output filename using the configured format string.
-        
-        Supports:
-        - %g: Generation ID
-        - %s: Scenario ID
-        - %c: Scenario Name
-        
-        Note: Scenario name is sanitized to remove characters that are not safe for filenames.
-        """
-        import re
-        # Sanitize scenario name to make it filesystem-safe
-        # Replace characters that are not safe for filenames with underscores
-        safe_scenario_name = re.sub(r'[<>:"/\\|?*]', '_', scenario_name)
-        safe_scenario_name = safe_scenario_name.replace(' ', '_')
-        return fmt.replace('%g', str(generation_id)).replace('%s', str(scenario_id)).replace('%c', safe_scenario_name)
-
-    def save_log_file(self, job_id: str, log_data: str, generation_id: int = 0, scenario_name: str = ""):
+    def save_log_file(self, command_result: CommandRunResult, log_data: str):
         dir_path = os.path.join(self.output_dir, 'logs')
         os.makedirs(dir_path, exist_ok=True)
         # Store log file in output directory under a "logs" folder.
-        log_filename = self._format_output_filename(
+        log_filename = format_result_filename(
             self.config.output.log_name_fmt,
-            generation_id,
-            int(job_id) if job_id.isdigit() else 0,
-            scenario_name
+            command_result
         )
         log_save_path = os.path.join(dir_path, log_filename)
         with open(log_save_path, 'w', encoding='utf-8') as f:
@@ -351,22 +332,15 @@ class GeneticAlgorithm:
     def save_scenario_result(self, fitness_result: CommandRunResult):
         logger.debug("Saving scenario result for scenario %s", fitness_result.scenario_id)
         result = fitness_result.model_dump()
-        scenario_obj = fitness_result.scenario
-        # Convert scenario to string representation for reporting purposes
-        scenario_display_name = str(scenario_obj)
-        scenario_simple_name = getattr(scenario_obj, "name", None)
-        if not scenario_simple_name or not isinstance(scenario_simple_name, str):
-            scenario_simple_name = getattr(scenario_obj, "__class__", type("Scenario", (), {"__name__": "Scenario"})).__name__
-        result['scenario']['name'] = scenario_display_name
+        scenario_name = fitness_result.scenario.name
+        result['scenario']['name'] = scenario_name
         generation_id = result['generation_id']
         result['job_id'] = fitness_result.scenario_id
 
         # Store log in a log file and update log location
         result['log'] = self.save_log_file(
-            str(fitness_result.scenario_id),
-            result['log'],
-            generation_id,
-            scenario_simple_name
+            fitness_result,
+            result['log']
         )
         # Convert timestamps to ISO string
         result['start_time'] = (result['start_time']).isoformat()
@@ -376,20 +350,18 @@ class GeneticAlgorithm:
         os.makedirs(output_dir, exist_ok=True)
 
         # Format YAML filename using configured format
-        yaml_filename = self._format_output_filename(
-            self.config.output.yaml_name_fmt,
-            generation_id,
-            fitness_result.scenario_id,
-            scenario_simple_name
+        filename = format_result_filename(
+            self.config.output.result_name_fmt,
+            fitness_result
         )
         # Ensure the extension matches the format
-        if not yaml_filename.endswith(f'.{self.format}'):
+        if not filename.endswith(f'.{self.format}'):
             # Remove any existing extension and add the correct one
-            base_name = os.path.splitext(yaml_filename)[0]
-            yaml_filename = f"{base_name}.{self.format}"
+            base_name = os.path.splitext(filename)[0]
+            filename = f"{base_name}.{self.format}"
 
         with open(
-                os.path.join(output_dir, yaml_filename),
+                os.path.join(output_dir, filename),
                 "w",
                 encoding="utf-8"
             ) as file_handler:

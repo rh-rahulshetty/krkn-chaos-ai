@@ -121,7 +121,7 @@ class OutputConfig(BaseModel):
     - %s: Scenario ID
     - %c: Scenario Name (e.g: pod_scenarios)
     """
-    yaml_name_fmt: str = "scenario_%s.yaml"
+    result_name_fmt: str = "scenario_%s.yaml"
     graph_name_fmt: str = "scenario_%s.png"
     log_name_fmt: str = "scenario_%s.log"
 
