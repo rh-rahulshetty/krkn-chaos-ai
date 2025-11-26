@@ -13,14 +13,16 @@ from typing import List
 from krkn_ai.models.app import CommandRunResult
 from krkn_ai.models.scenario.base import Scenario
 from krkn_ai.utils.logger import get_logger
+from krkn_ai.utils.output import format_result_filename
 
 logger = get_logger(__name__)
 
 class HealthCheckReporter:
-    def __init__(self, output_dir: str):
+    def __init__(self, output_dir: str, output_config=None):
         self.output_dir = os.path.join(output_dir, "reports")
+        self.output_config = output_config
         os.makedirs(self.output_dir, exist_ok=True)
-
+    
     def save_report(self, fitness_results: List[CommandRunResult]):
         logger.debug("Saving health check report")
         results = []
@@ -63,7 +65,21 @@ class HealthCheckReporter:
         logger.debug("Plotting health check result")
         output_dir = os.path.join(self.output_dir, "graphs")
         os.makedirs(output_dir, exist_ok=True)
-        save_path = os.path.join(output_dir, "scenario_%d.png" % result.scenario_id)
+        
+        if self.output_config:
+            graph_filename = format_result_filename(
+                self.output_config.graph_name_fmt,
+                result
+            )
+            # Ensure the extension is .png
+            if not graph_filename.endswith('.png'):
+                base_name = os.path.splitext(graph_filename)[0]
+                graph_filename = f"{base_name}.png"
+        else:
+            # Default format for backward compatibility
+            graph_filename = "scenario_%d.png" % result.scenario_id
+        
+        save_path = os.path.join(output_dir, graph_filename)
 
         # Flatten the data
         records = []

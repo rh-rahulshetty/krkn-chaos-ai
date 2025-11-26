@@ -104,6 +104,12 @@ population_injection_rate: 0.1
 # Duration to wait before running next scenario (seconds)
 wait_duration: 30
 
+# Specify how result filenames are formatted
+output:
+  result_name_fmt: "scenario_%s.yaml"
+  graph_name_fmt: "scenario_%s.png"
+  log_name_fmt: "scenario_%s.log"
+
 # Fitness function configuration
 fitness_function: 
   query: 'sum(kube_pod_container_status_restarts_total{namespace="robot-shop"})'

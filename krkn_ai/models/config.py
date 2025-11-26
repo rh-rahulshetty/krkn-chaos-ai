@@ -111,6 +111,20 @@ class HealthCheckConfig(BaseModel):
     stop_watcher_on_failure: bool = False
     applications: List[HealthCheckApplicationConfig] = []
 
+
+class OutputConfig(BaseModel):
+    """
+    Configuration for output file naming formats.
+    
+    Supports parameterized string values:
+    - %g: Generation ID
+    - %s: Scenario ID
+    - %c: Scenario Name (e.g: pod_scenarios)
+    """
+    result_name_fmt: str = "scenario_%s.yaml"
+    graph_name_fmt: str = "scenario_%s.png"
+    log_name_fmt: str = "scenario_%s.log"
+
 class HealthCheckResult(BaseModel):
     name: str
     timestamp: str = Field(default_factory=lambda: datetime.datetime.now().isoformat())
@@ -141,5 +155,7 @@ class ConfigFile(BaseModel):
     health_checks: HealthCheckConfig = HealthCheckConfig()
 
     scenario: ScenarioConfig = ScenarioConfig()
+
+    output: OutputConfig = OutputConfig()
 
     cluster_components: ClusterComponents

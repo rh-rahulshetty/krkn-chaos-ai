@@ -7,6 +7,11 @@ population_injection_rate: 0
 
 wait_duration: 120
 
+output:
+  result_name_fmt: "scenario_%s.yaml"
+  graph_name_fmt: "scenario_%s.png"
+  log_name_fmt: "scenario_%s.log"
+
 fitness_function: 
   query: 'sum(kube_pod_container_status_restarts_total)'
   type: point

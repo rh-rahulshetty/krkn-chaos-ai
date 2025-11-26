@@ -16,6 +16,7 @@ from krkn_ai.utils.logger import get_logger
 from krkn_ai.chaos_engines.krkn_runner import KrknRunner
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.custom_errors import PopulationSizeError
+from krkn_ai.utils.output import format_result_filename
 
 logger = get_logger(__name__)
 
@@ -43,7 +44,7 @@ class GeneticAlgorithm:
         self.seen_population = {}  # Map between scenario and its result
         self.best_of_generation = []
 
-        self.health_check_reporter = HealthCheckReporter(self.output_dir)
+        self.health_check_reporter = HealthCheckReporter(self.output_dir, self.config.output)
         self.generations_reporter = GenerationsReporter(self.output_dir, self.format)
 
         if self.config.population_size < 2:
@@ -315,28 +316,29 @@ class GeneticAlgorithm:
             config_data = self.config.model_dump(mode='json')
             yaml.dump(config_data, f, sort_keys=False)
 
-    def save_log_file(self, job_id: str, log_data: str):
+    def save_log_file(self, command_result: CommandRunResult):
         dir_path = os.path.join(self.output_dir, 'logs')
         os.makedirs(dir_path, exist_ok=True)
         # Store log file in output directory under a "logs" folder.
-        log_save_path = os.path.join(dir_path, "scenario_%s.log" % job_id)
+        log_filename = format_result_filename(
+            self.config.output.log_name_fmt,
+            command_result
+        )
+        log_save_path = os.path.join(dir_path, log_filename)
         with open(log_save_path, 'w', encoding='utf-8') as f:
-            f.write(log_data)
+            f.write(command_result.log)
         return log_save_path
 
     def save_scenario_result(self, fitness_result: CommandRunResult):
         logger.debug("Saving scenario result for scenario %s", fitness_result.scenario_id)
         result = fitness_result.model_dump()
-        # Convert scenario to string representation and replace it in scenario.name
-        result['scenario']['name'] = str(fitness_result.scenario)
+        scenario_name = fitness_result.scenario.name
+        result['scenario']['name'] = scenario_name
         generation_id = result['generation_id']
         result['job_id'] = fitness_result.scenario_id
 
         # Store log in a log file and update log location
-        result['log'] = self.save_log_file(
-            str(fitness_result.scenario_id),
-            result['log']
-        )
+        result['log'] = self.save_log_file(fitness_result)
         # Convert timestamps to ISO string
         result['start_time'] = (result['start_time']).isoformat()
         result['end_time'] = (result['end_time']).isoformat()
@@ -344,8 +346,19 @@ class GeneticAlgorithm:
         output_dir = os.path.join(self.output_dir, self.format, "generation_%s" % generation_id)
         os.makedirs(output_dir, exist_ok=True)
 
+        # Format YAML filename using configured format
+        filename = format_result_filename(
+            self.config.output.result_name_fmt,
+            fitness_result
+        )
+        # Ensure the extension matches the format
+        if not filename.endswith(f'.{self.format}'):
+            # Remove any existing extension and add the correct one
+            base_name = os.path.splitext(filename)[0]
+            filename = f"{base_name}.{self.format}"
+
         with open(
-                os.path.join(output_dir, "scenario_%s.%s" % (fitness_result.scenario_id, self.format)),
+                os.path.join(output_dir, filename),
                 "w",
                 encoding="utf-8"
             ) as file_handler:
