@@ -3,7 +3,7 @@ import copy
 import json
 from typing_extensions import Dict
 import yaml
-from typing import List
+from typing import List, Tuple
 
 from krkn_ai.models.app import CommandRunResult, KrknRunnerType
 
@@ -42,6 +42,7 @@ class GeneticAlgorithm:
         self.population = []
         self.format = format
 
+        self.valid_scenarios = ScenarioFactory.generate_valid_scenarios(self.config)  # List valid scenarios
         self.seen_population: Dict[BaseScenario, CommandRunResult] = {}  # Map between scenario and its result
         self.best_of_generation = []
 
@@ -63,6 +64,7 @@ class GeneticAlgorithm:
         logger.debug("%s", json.dumps(self.config.model_dump(), indent=2))
 
     def simulate(self):
+        # Initial population (Gen 0)
         self.create_population(self.config.population_size)
 
         for i in range(self.config.generations):
@@ -132,11 +134,12 @@ class GeneticAlgorithm:
         """Generate random population for algorithm"""
         logger.info("Creating random population")
         logger.info("Population Size: %d", self.config.population_size)
-
+        
         already_seen = set()
         count = 0
+        # TODO: Handle case where no valid scenarios are found, this could go into infinite loop
         while count != population_size:
-            scenario = ScenarioFactory.generate_random_scenario(self.config)
+            scenario = ScenarioFactory.generate_random_scenario(self.config, self.valid_scenarios)
             if scenario and scenario not in already_seen:
                 self.population.append(scenario)
                 already_seen.add(scenario)
@@ -183,11 +186,9 @@ class GeneticAlgorithm:
         '''
         Create a new scenario of different type while trying to preserve properties.
         '''
-        possible_scenarios = ScenarioFactory.list_scenarios(self.config)
-
         # check scenarios for common parameters
         common_scenarios = []
-        for _, scenario_cls in possible_scenarios:
+        for _, scenario_cls in self.valid_scenarios:
             # instantiate new scenario for a scenario type
             new_scenario = scenario_cls(cluster_components=self.config.cluster_components)
 
@@ -197,6 +198,7 @@ class GeneticAlgorithm:
             # Do not consider the same scenario type for scenario mutation
             if len(common_params) > 0 and type(new_scenario) != type(scenario):
                 common_scenarios.append(new_scenario)
+
         if len(common_scenarios) == 0:
             logger.debug("No common scenarios found, returning original scenario")
             return False, scenario

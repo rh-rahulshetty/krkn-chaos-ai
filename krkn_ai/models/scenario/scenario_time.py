@@ -1,3 +1,4 @@
+from krkn_ai.models.custom_errors import ScenarioParameterInitError
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.scenario.base import Scenario
 from krkn_ai.models.scenario.parameters import *
@@ -29,27 +30,38 @@ class TimeScenario(Scenario):
         ]
 
     def mutate(self):
-        self.object_type.mutate()
+        # Pre-check if data is available for scenario
+        namespace = rng.choice([
+            namespace for namespace in self._cluster_components.namespaces 
+            if len(namespace.pods) > 0
+        ])
+        all_pod_labels = set()
+        for p in namespace.pods:
+            for label, value in p.labels.items():
+                all_pod_labels.add(f"{label}={value}")
+
+        all_node_labels = set()
+        for n in self._cluster_components.nodes:
+            for label, value in n.labels.items():
+                all_node_labels.add(f"{label}={value}")
+
+        if len(all_pod_labels) == 0 and len(all_node_labels) == 0:
+            raise ScenarioParameterInitError("No labels found for pods and nodes in cluster components")
+
+        if len(all_node_labels) == 0:
+            self.object_type.value = "pod"
+        elif len(all_pod_labels) == 0:
+            self.object_type.value = "node"
+        else:
+            self.object_type.mutate()
+
         self.action_time.mutate()
-        
+
+        # Select a random label from the available labels
         if self.object_type.value == "pod":
-            namespace = rng.choice([
-                namespace for namespace in self._cluster_components.namespaces 
-                if len(namespace.pods) > 0
-            ])
-            all_labels = set()
-            # select a random pod label
-            for p in namespace.pods:
-                for label, value in p.labels.items():
-                    all_labels.add(f"{label}={value}")
-            self.label_selector.value = rng.choice(list(all_labels))
+            self.label_selector.value = rng.choice(list(all_pod_labels))
             self.namespace.value = namespace.name
         else:
-            all_labels = set()
-            # select a random node label
-            for n in self._cluster_components.nodes:
-                for label, value in n.labels.items():
-                    all_labels.add(f"{label}={value}")
-            self.label_selector.value = rng.choice(list(all_labels))
+            self.label_selector.value = rng.choice(list(all_node_labels))
             self.namespace.value = ""
 

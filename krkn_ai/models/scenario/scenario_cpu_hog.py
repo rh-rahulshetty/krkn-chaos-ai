@@ -1,6 +1,7 @@
 from collections import Counter
 import json
 
+from krkn_ai.models.custom_errors import ScenarioParameterInitError
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.scenario.base import Scenario
 from krkn_ai.models.scenario.parameters import *

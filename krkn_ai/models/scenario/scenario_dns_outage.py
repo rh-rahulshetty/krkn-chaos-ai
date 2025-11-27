@@ -1,4 +1,5 @@
 from collections import defaultdict
+from krkn_ai.models.custom_errors import ScenarioParameterInitError
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.scenario.base import Scenario
 from krkn_ai.models.scenario.parameters import *
@@ -34,10 +35,14 @@ class DnsOutageScenario(Scenario):
         ]
 
     def mutate(self):
-        # Select a random pod from all pods in the cluster
         pods = [
             (ns, pod) for ns in self._cluster_components.namespaces for pod in ns.pods
         ]
+
+        if len(pods) == 0:
+            raise ScenarioParameterInitError("No pods found in cluster components")
+
+        # Select a random pod from all pods in the cluster
         ns, pod = rng.choice(pods)
         self.namespace.value = ns.name
         self.pod_name.value = pod.name

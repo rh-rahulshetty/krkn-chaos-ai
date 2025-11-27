@@ -1,9 +1,10 @@
 from typing import List, Tuple
 from krkn_ai.models.cluster_components import ClusterComponents
 from krkn_ai.models.config import ConfigFile
-from krkn_ai.models.custom_errors import MissingScenarioError, ScenarioInitError
+from krkn_ai.models.custom_errors import MissingScenarioError, ScenarioInitError, ScenarioParameterInitError
 from krkn_ai.models.scenario.base import Scenario
 from krkn_ai.models.scenario.scenario_network import NetworkScenario
+from krkn_ai.utils.logger import get_logger
 from krkn_ai.utils.rng import rng
 
 from krkn_ai.models.scenario.scenario_dummy import DummyScenario
@@ -14,6 +15,9 @@ from krkn_ai.models.scenario.scenario_cpu_hog import NodeCPUHogScenario
 from krkn_ai.models.scenario.scenario_memory_hog import NodeMemoryHogScenario
 from krkn_ai.models.scenario.scenario_time import TimeScenario
 from krkn_ai.models.scenario.scenario_dns_outage import DnsOutageScenario
+
+
+logger = get_logger(__name__)
 
 scenario_specs = [
     ("pod_scenarios", PodScenario),
@@ -31,22 +35,52 @@ class ScenarioFactory:
     def list_scenarios(config: ConfigFile) -> List[Tuple[str, Scenario]]:
         # List all scenarios that are set in config
         candidates = [
-            (getattr(config.scenario, attr), factory)
+            (attr, factory)
             for attr, factory in scenario_specs
             if getattr(config.scenario, attr).enable
         ]
         return candidates
-    
+
     @staticmethod
-    def generate_random_scenario(
-        config: ConfigFile,
-    ):
-        # List all scenarios that are set in config
+    def generate_valid_scenarios(config: ConfigFile) -> List[Tuple[str, Scenario]]:
+        '''
+        Validate all scenarios that are set in config and are valid.
+
+        Returns a list of valid scenarios.
+        '''
+        # Get all scenarios that are set in config
         candidates = ScenarioFactory.list_scenarios(config)
 
         if len(candidates) == 0:
             raise MissingScenarioError("No scenarios found. Please provide atleast 1 scenario.")
 
+        # Validate scenarios and find valid scenarios
+        valid_scenarios = []
+        for name, cls in candidates:
+            try:
+                # Try to instantiate the scenario
+                cls(cluster_components=config.cluster_components)
+                valid_scenarios.append((name, cls))
+            except ScenarioParameterInitError as error:
+                logger.warning("Unable to initialize scenario %s, please make sure cluster components for scenario are valid", name)
+                logger.debug("Error details: %s", error)
+            except Exception as error:
+                logger.warning("Unable to instantiate scenario %s: %s", name, error)
+
+        if len(valid_scenarios) == 0:
+            raise MissingScenarioError("No valid scenarios found. Please validate cluster components in config file.")
+
+        logger.debug("Identified %d valid scenarios: %s", len(valid_scenarios), [name for name, _ in valid_scenarios])
+        return valid_scenarios
+
+    @staticmethod
+    def generate_random_scenario(
+        config: ConfigFile,
+        candidates: List[Tuple[str, Scenario]],
+    ):
+        '''
+        Generate a random scenario from the list of valid scenarios.
+        '''
         try:
             # Unpack Scenario class and create instance
             _, cls = rng.choice(candidates)

@@ -87,6 +87,7 @@ Krkn-AI uses YAML configuration files to define experiments. You can generate a 
 uv run krkn_ai discover -k ./tmp/kubeconfig.yaml \
   -n "robot-shop" \
   -pl "service" \
+  -nl "kubernetes.io/hostname" \
   -o ./tmp/krkn-ai.yaml \
   --skip-pod-name "nginx-proxy.*"
 ```

@@ -1,3 +1,6 @@
+from typing import List, Tuple
+from krkn_ai.models.cluster_components import Namespace, Pod
+from krkn_ai.models.custom_errors import ScenarioParameterInitError
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.scenario.base import Scenario
 from krkn_ai.models.scenario.parameters import *
@@ -31,11 +34,19 @@ class ContainerScenario(Scenario):
         ]
 
     def mutate(self):
-        namespace = rng.choice([
-            namespace for namespace in self._cluster_components.namespaces 
-            if len(namespace.pods) > 0
-        ])
-        pod = rng.choice(namespace.pods)
+        namespace_pod_tuple: List[Tuple[Namespace, Pod]] = []
+
+        # look for pods with labels
+        for namespace in self._cluster_components.namespaces:
+            for pod in namespace.pods:
+                if len(pod.labels) > 0:
+                    namespace_pod_tuple.append((namespace, pod))
+
+        if len(namespace_pod_tuple) == 0:
+            raise ScenarioParameterInitError("No pods found with labels for container scenario")
+
+        # Select a random namespace and pod from the tuple list
+        namespace, pod = rng.choice(namespace_pod_tuple)
         labels = pod.labels
         label = rng.choice(list(labels.keys()))
 
