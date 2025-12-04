@@ -10,6 +10,11 @@ class Pod(BaseModel):
     labels: Dict[str, str] = {}
     containers: List[Container] = []
 
+class PVC(BaseModel):
+    name: str
+    labels: Dict[str, str] = {}
+    current_usage_percentage: Optional[float] = None
+
 class ServicePort(BaseModel):
     port: int
     target_port: Optional[Union[int, str]] = None
@@ -26,6 +31,7 @@ class Namespace(BaseModel):
     name: str
     pods: List[Pod] = []
     services: List[Service] = []
+    pvcs: List[PVC] = []
 
 class Node(BaseModel):
     name: str

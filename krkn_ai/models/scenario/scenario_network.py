@@ -12,7 +12,7 @@ class NetworkScenario(Scenario):
 
     traffic_type: NetworkScenarioTypeParameter = NetworkScenarioTypeParameter()
     image: NetworkScenarioImageParameter = NetworkScenarioImageParameter()
-    duration: NetworkScenarioDurationParameter = NetworkScenarioDurationParameter()
+    duration: StandardDurationParameter = StandardDurationParameter()
     label_selector: NetworkScenarioLabelSelectorParameter = NetworkScenarioLabelSelectorParameter()
     execution: NetworkScenarioExecutionParameter = NetworkScenarioExecutionParameter()
     node_name: NetworkScenarioNodeNameParameter = NetworkScenarioNodeNameParameter()

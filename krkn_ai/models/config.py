@@ -34,6 +34,9 @@ class DnsOutageScenarioConfig(BaseModel):
 class SynFloodScenarioConfig(BaseModel):
     enable: bool = False
 
+class PVCScenarioConfig(BaseModel):
+    enable: bool = False
+
 class ScenarioConfig(BaseModel):
     application_outages: Optional[AppOutageScenarioConfig] = Field(
         alias="application-outages", default=None
@@ -64,6 +67,9 @@ class ScenarioConfig(BaseModel):
     )
     syn_flood: Optional[SynFloodScenarioConfig] = Field(
         alias="syn-flood", default=None
+    )
+    pvc_scenarios: Optional[PVCScenarioConfig] = Field(
+        alias="pvc-scenarios", default=None
     )
 
 

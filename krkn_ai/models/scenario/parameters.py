@@ -1,3 +1,4 @@
+import math
 from pydantic import BaseModel, Field
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.scenario.base import BaseParameter
@@ -209,7 +210,10 @@ class NetworkScenarioImageParameter(BaseParameter):
     krknctl_name: str = "image"
     value: str = "quay.io/krkn-chaos/krkn:tools"
 
-class NetworkScenarioDurationParameter(BaseParameter):
+class StandardDurationParameter(BaseParameter):
+    """
+    Standard duration parameter with krknctl_name="duration" and krknhub_name="DURATION".
+    """
     krknhub_name: str = "DURATION"
     krknctl_name: str = "duration"
     value: int = 120
@@ -306,6 +310,31 @@ class EgressParameter(BaseParameter):
     krknhub_name: str = "EGRESS"
     krknctl_name: str = "egress"
     value: str = "true"
+
+# PVC Scenario Parameters
+class PVCNameParameter(BaseParameter):
+    krknhub_name: str = "PVC_NAME"
+    krknctl_name: str = "pvc-name"
+    value: str = ""
+
+class FillPercentageParameter(BaseParameter):
+    krknhub_name: str = "FILL_PERCENTAGE"
+    krknctl_name: str = "fill-percentage"
+    value: int = 50
+
+    def mutate(self, min_value: float = None):
+        """
+        Mutate the fill percentage value.
+        Args:
+            min_value: Minimum value (e.g., current usage percentage). If provided, ensures value > min_value.
+        """
+        # Calculate valid range
+        min_value_int = 1
+        if min_value is not None:
+            min_value_int = min(math.ceil(min_value) + 1, 99)
+        
+        # Random value between min_value_int and 99
+        self.value = rng.randint(min_value_int, 99)
 
 # SYN Flood Scenario Parameters
 class SynFloodPacketSizeParameter(BaseParameter):

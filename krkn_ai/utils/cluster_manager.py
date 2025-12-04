@@ -12,6 +12,7 @@ from krkn_ai.models.cluster_components import (
     Namespace,
     Node,
     Pod,
+    PVC,
     Service,
     ServicePort,
 )
@@ -42,6 +43,7 @@ class ClusterManager:
             pods = self.list_pods(namespace, pod_label_pattern, skip_pod_name_patterns)
             namespaces[i].pods = pods
             namespaces[i].services = self.list_services(namespace)
+            namespaces[i].pvcs = self.list_pvcs(namespace)
 
         return ClusterComponents(
             namespaces=namespaces,
@@ -128,6 +130,26 @@ class ClusterManager:
 
         logger.debug("Discovered %d services in namespace %s", len(service_list), namespace.name)
         return service_list
+
+    def list_pvcs(self, namespace: Namespace) -> List[PVC]:
+        """List all PVCs in the namespace"""
+        try:
+            pvcs = self.core_api.list_namespaced_persistent_volume_claim(namespace=namespace.name).items
+            pvc_list = []
+            
+            for pvc in pvcs:
+                pvc_list.append(
+                    PVC(
+                        name=pvc.metadata.name,
+                        labels=pvc.metadata.labels or {},
+                    )
+                )
+            
+            logger.info("Discovered %d PVCs in namespace %s", len(pvc_list), namespace.name)
+            return pvc_list
+        except Exception as e:
+            logger.warning("Failed to list PVCs in namespace %s: %s", namespace.name, str(e))
+            return []
 
     def list_containers(self, pod_spec: V1PodSpec) -> List[Container]:
         containers = []
