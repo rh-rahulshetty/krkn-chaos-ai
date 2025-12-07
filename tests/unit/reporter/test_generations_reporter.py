@@ -1,0 +1,135 @@
+"""
+GenerationsReporter unit tests
+"""
+import os
+import json
+import yaml
+import datetime
+import pytest
+from unittest.mock import patch, MagicMock
+
+from krkn_ai.reporter.generations_reporter import GenerationsReporter
+from krkn_ai.models.app import CommandRunResult, FitnessResult
+from krkn_ai.models.scenario.scenario_dummy import DummyScenario
+from krkn_ai.models.cluster_components import ClusterComponents
+
+
+class TestGenerationsReporter:
+    """Test GenerationsReporter core functionality"""
+
+    def test_save_best_generations_yaml_format(self, temp_output_dir):
+        """Test saving best generations in YAML format with multiple results"""
+        reporter = GenerationsReporter(output_dir=temp_output_dir, format="yaml")
+        scenario = DummyScenario(cluster_components=ClusterComponents())
+        now = datetime.datetime.now()
+        
+        best_generations = [
+            CommandRunResult(
+                generation_id=0,
+                scenario_id=1,
+                scenario=scenario,
+                cmd="test-cmd-1",
+                log="log-1",
+                returncode=0,
+                start_time=now,
+                end_time=now,
+                fitness_result=FitnessResult(fitness_score=10.0)
+            ),
+            CommandRunResult(
+                generation_id=1,
+                scenario_id=2,
+                scenario=scenario,
+                cmd="test-cmd-2",
+                log="log-2",
+                returncode=0,
+                start_time=now,
+                end_time=now,
+                fitness_result=FitnessResult(fitness_score=20.0)
+            )
+        ]
+        
+        reporter.save_best_generations(best_generations)
+        
+        save_path = os.path.join(temp_output_dir, "reports", "best_scenarios.yaml")
+        assert os.path.exists(save_path)
+        
+        with open(save_path, 'r') as f:
+            results = yaml.safe_load(f)
+            assert len(results) == 2
+            assert results[0]['generation_id'] == 0
+            assert results[0]['fitness_result']['fitness_score'] == 10.0
+            assert 'log' not in results[0]  # log should be removed
+            assert results[1]['generation_id'] == 1
+            assert results[1]['fitness_result']['fitness_score'] == 20.0
+
+    def test_save_best_generations_json_format(self, temp_output_dir):
+        """Test saving best generations in JSON format"""
+        reporter = GenerationsReporter(output_dir=temp_output_dir, format="json")
+        scenario = DummyScenario(cluster_components=ClusterComponents())
+        now = datetime.datetime.now()
+        
+        best_generations = [
+            CommandRunResult(
+                generation_id=0,
+                scenario_id=1,
+                scenario=scenario,
+                cmd="test-cmd",
+                log="test-log",
+                returncode=0,
+                start_time=now,
+                end_time=now,
+                fitness_result=FitnessResult(fitness_score=15.0)
+            )
+        ]
+        
+        reporter.save_best_generations(best_generations)
+        
+        save_path = os.path.join(temp_output_dir, "reports", "best_scenarios.json")
+        assert os.path.exists(save_path)
+        
+        with open(save_path, 'r') as f:
+            results = json.load(f)
+            assert len(results) == 1
+            assert results[0]['generation_id'] == 0
+            assert results[0]['fitness_result']['fitness_score'] == 15.0
+
+    def test_save_best_generation_graph_with_results(self, temp_output_dir):
+        """Test generating best generation graph with valid data"""
+        reporter = GenerationsReporter(output_dir=temp_output_dir, format="yaml")
+        scenario = DummyScenario(cluster_components=ClusterComponents())
+        now = datetime.datetime.now()
+        
+        best_generations = [
+            CommandRunResult(
+                generation_id=i,
+                scenario_id=i+1,
+                scenario=scenario,
+                cmd=f"cmd-{i}",
+                log=f"log-{i}",
+                returncode=0,
+                start_time=now,
+                end_time=now,
+                fitness_result=FitnessResult(fitness_score=float(i * 10))
+            )
+            for i in range(3)
+        ]
+        
+        with patch('krkn_ai.reporter.generations_reporter.plt') as mock_plt:
+            reporter.save_best_generation_graph(best_generations)
+            
+            graph_path = os.path.join(temp_output_dir, "reports", "graphs", "best_generation.png")
+            mock_plt.savefig.assert_called_once()
+            assert mock_plt.close.called
+
+    def test_save_best_generation_graph_with_empty_list(self, temp_output_dir):
+        """Test that empty list does not generate graph"""
+        reporter = GenerationsReporter(output_dir=temp_output_dir, format="yaml")
+        
+        with patch('krkn_ai.reporter.generations_reporter.plt') as mock_plt:
+            reporter.save_best_generation_graph([])
+            
+            # Should not call savefig for empty list
+            mock_plt.savefig.assert_not_called()
+            graph_path = os.path.join(temp_output_dir, "reports", "graphs", "best_generation.png")
+            assert not os.path.exists(graph_path)
+
