@@ -18,7 +18,7 @@ def preprocess_param_string(data: str, params: dict) -> str:
     return data
 
 
-def read_config_from_file(file_path: str, param: list[str] = None) -> ConfigFile:
+def read_config_from_file(file_path: str, param: list[str] = None, kubeconfig: str = None) -> ConfigFile:
     """Read config file from local
     Args:
         file_path: Path to config file
@@ -28,6 +28,8 @@ def read_config_from_file(file_path: str, param: list[str] = None) -> ConfigFile
     """
     with open(file_path, "r", encoding="utf-8") as stream:
         config = yaml.safe_load(stream)
+    if kubeconfig is not None and kubeconfig != '' and os.path.exists(kubeconfig):
+        config['kubeconfig_file_path'] = kubeconfig
     if param:
         # Keep track of parameters in config file
         config['parameters'] = {}

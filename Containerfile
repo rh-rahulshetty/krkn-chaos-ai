@@ -17,6 +17,11 @@ RUN dnf install -y \
     git \
     && dnf clean all
 
+# Install uv
+RUN wget -qO- https://astral.sh/uv/install.sh | sh \
+    && mv /root/.local/bin/uv /usr/local/bin/uv \
+    && mv /root/.local/bin/uvx /usr/local/bin/uvx
+
 # Install krknctl
 ARG KRKNCTL_VERSION=v0.10.15-beta
 RUN wget -q https://github.com/krkn-chaos/krknctl/releases/download/${KRKNCTL_VERSION}/krknctl-${KRKNCTL_VERSION}-linux-amd64.tar.gz \
@@ -25,15 +30,18 @@ RUN wget -q https://github.com/krkn-chaos/krknctl/releases/download/${KRKNCTL_VE
     && chmod +x /usr/local/bin/krknctl \
     && rm -f krknctl-${KRKNCTL_VERSION}-linux-amd64.tar.gz LICENSE README.md
 
-# Copy requirements and install Python dependencies
+# Create virtual environment with uv
+RUN uv venv /app/.venv --python python3.12
+
+# Copy requirements and install Python dependencies into venv
 COPY requirements.txt .
-RUN python3 -m pip install --no-cache-dir -r requirements.txt
+RUN uv pip install --no-cache -r requirements.txt
 
 # Copy the project files
 COPY . .
 
-# Install krkn-ai in editable mode
-RUN python3 -m pip install -e .
+# Install krkn-ai in editable mode into venv
+RUN uv pip install -e .
 
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh
@@ -41,6 +49,10 @@ RUN chmod +x /entrypoint.sh
 
 # Create mount points for input/output
 RUN mkdir -p /input /output
+
+# Set virtual environment path
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Environment variables with defaults
 ENV MODE=run

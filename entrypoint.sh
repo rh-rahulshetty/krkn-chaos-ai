@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Activate the uv virtual environment
+source /app/.venv/bin/activate
+
 # Function to display usage
 usage() {
     echo "Usage: Set MODE environment variable to 'discover' or 'run'"
@@ -49,7 +52,7 @@ case "$MODE_LOWER" in
         fi
         
         # Build the command
-        CMD="krkn-ai discover --kubeconfig $KUBECONFIG --output $OUTPUT_DIR/krkn-ai.yaml"
+        CMD="uv run krkn_ai discover --kubeconfig $KUBECONFIG --output $OUTPUT_DIR/krkn-ai.yaml"
         
         # Add optional parameters
         if [ -n "$NAMESPACE" ]; then
@@ -87,10 +90,16 @@ case "$MODE_LOWER" in
             echo "ERROR: CONFIG_FILE not found at: $CONFIG_FILE"
             exit 1
         fi
-        
+
+        # Validate required parameters
+        if [ ! -f "$KUBECONFIG" ]; then
+            echo "ERROR: KUBECONFIG file not found at: $KUBECONFIG"
+            exit 1
+        fi
+
         # Build the command
-        CMD="krkn-ai run --config $CONFIG_FILE --output $OUTPUT_DIR"
-        
+        CMD="uv run krkn_ai run --config $CONFIG_FILE --output $OUTPUT_DIR --kubeconfig $KUBECONFIG"
+
         # Add optional parameters
         if [ -n "$FORMAT" ]; then
             CMD="$CMD --format $FORMAT"

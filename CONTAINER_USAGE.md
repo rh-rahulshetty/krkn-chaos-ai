@@ -16,28 +16,18 @@ The container supports two modes controlled by the `MODE` environment variable:
 
 Discovers cluster components and generates a configuration file.
 
-**Basic Usage:**
+**Usage:**
 ```bash
 podman run --rm \
-  -v ./input:/input:Z \
-  -v ./output:/output:Z \
-  -e MODE=discover \
-  -e KUBECONFIG=/input/kubeconfig \
-  krkn-ai:latest
-```
-
-**Advanced Usage with Filtering:**
-```bash
-podman run --rm \
-  -v ./input:/input:Z \
-  -v ./output:/output:Z \
-  -e MODE=discover \
-  -e KUBECONFIG=/input/kubeconfig \
-  -e NAMESPACE="default,kube-system" \
-  -e POD_LABEL="app=.*" \
-  -e NODE_LABEL="node-role.*" \
-  -e SKIP_POD_NAME="coredns.*" \
-  -e VERBOSE=2 \
+  -v ./tmp/container-test:/mount:Z \
+  -e MODE="discover" \
+  -e KUBECONFIG="/mount/kubeconfig.yaml" \
+  -e OUTPUT_DIR="/mount/" \
+  -e NAMESPACE="robot-shop" \
+  -e POD_LABEL="service" \
+  -e NODE_LABEL="kubernetes.io/hostname" \
+  -e SKIP_POD_NAME="nginx-proxy.*" \
+  -e VERBOSE="2" \
   krkn-ai:latest
 ```
 
@@ -55,18 +45,8 @@ podman run --rm \
 
 Executes chaos engineering tests based on a configuration file.
 
-**Basic Usage:**
-```bash
-podman run --rm \
-  -v ./input:/input:Z \
-  -v ./output:/output:Z \
-  -e MODE=run \
-  -e CONFIG_FILE=/input/krkn-ai.yaml \
-  -e RUNNER_TYPE=krknctl \
-  krkn-ai:latest
-```
+**Usage:**
 
-**Advanced Usage with Parameters:**
 ```bash
 podman run --rm \
   -v ./input:/input:Z \
@@ -82,6 +62,7 @@ podman run --rm \
 
 **Environment Variables (Run):**
 - `MODE=run` (required)
+- `KUBECONFIG` (required) - Path to kubeconfig file (default: `/input/kubeconfig`)
 - `CONFIG_FILE` (required) - Path to krkn-ai config file (default: `/input/krkn-ai.yaml`)
 - `OUTPUT_DIR` (optional) - Output directory (default: `/output`)
 - `FORMAT` (optional) - Output format: `json` or `yaml` (default: `yaml`)

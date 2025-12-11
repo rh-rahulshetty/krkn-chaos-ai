@@ -19,6 +19,7 @@ def main():
 @main.command(
     help='Run Krkn-AI tests'
 )
+@click.option('--kubeconfig', '-k', help='Path to cluster kubeconfig file. Setting this will override value in config file.', default=os.getenv('KUBECONFIG', None))
 @click.option('--config', '-c', help='Path to krkn-ai config file.')
 @click.option('--output', '-o', help='Directory to save results.')
 @click.option('--format', '-f', help='Format of the output file.',
@@ -37,6 +38,7 @@ def main():
 @click.option('-v', '--verbose', count=True, help='Increase verbosity of output.')
 @click.pass_context
 def run(ctx,
+    kubeconfig: str,
     config: str,
     output: str = "./",
     format: str = 'yaml',
@@ -55,7 +57,7 @@ def run(ctx,
         exit(1)
 
     try:
-        parsed_config = read_config_from_file(config, param)
+        parsed_config = read_config_from_file(config, param, kubeconfig)
         logger.info("Initialized config: %s", config)
     except (KeyError) as err:
         logger.error("Unable to parse config file due to missing key: %s", err)
