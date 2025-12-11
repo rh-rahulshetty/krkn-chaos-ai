@@ -86,7 +86,7 @@ Container version only supports krknhub runner type at the moment due to limitat
 If you do not want to use the `--privileged` flag due to security concerns, you can leverage the host's `fuse-overlayfs` to run a Podman container. Learn more about this approach [here](https://www.redhat.com/en/blog/podman-inside-container).
 
 ```bash
-mkdir -p ./tmp/container/ && chmod 777 ./tmp/container/
+mkdir -p ./tmp/container/result && chmod 777 ./tmp/container/result
 
 podman run --rm \
   --user podman \
@@ -108,7 +108,7 @@ When running Krkn-AI as a Podman container inside another container with FUSE, y
 ```bash
 podman volume create mystorage
 
-mkdir -p ./tmp/container/ && chmod 777 ./tmp/container/
+mkdir -p ./tmp/container/result && chmod 777 ./tmp/container/result
 
 podman run --rm \
   --user podman \

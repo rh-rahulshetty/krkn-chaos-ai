@@ -134,5 +134,8 @@ case "$MODE_LOWER" in
         ;;
 esac
 
+# Set permissions on output directory (best effort, may fail if directory was pre-created with different ownership)
+chmod -R 777 "$OUTPUT_DIR" 2>/dev/null || echo "Warning: Could not set permissions on $OUTPUT_DIR"
+
 echo "Execution completed!"
 
