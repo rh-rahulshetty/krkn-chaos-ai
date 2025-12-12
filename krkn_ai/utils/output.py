@@ -27,3 +27,14 @@ def format_result_filename(fmt: str, command_result: CommandRunResult) -> str:
            .replace('%c', safe_name)
     )
 
+def format_duration(duration: float) -> str:
+    """
+    Format duration in seconds to a human-readable string.
+    """
+    if duration < 60:
+        return f"{duration:.2f} seconds"
+    elif duration < 3600:
+        return f"{duration / 60:.2f} minutes"
+    else:
+        return f"{duration / 3600:.2f} hours"
+

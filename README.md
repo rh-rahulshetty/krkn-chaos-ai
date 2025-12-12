@@ -102,6 +102,9 @@ population_size: 10
 composition_rate: 0.3
 population_injection_rate: 0.1
 
+# Uncomment the line below to enable runs by duration instead of generation count
+# duration: 600
+
 # Duration to wait before running next scenario (seconds)
 wait_duration: 30
 

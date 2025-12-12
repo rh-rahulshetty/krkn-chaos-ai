@@ -18,7 +18,7 @@ from krkn_ai.utils.logger import get_logger
 from krkn_ai.chaos_engines.krkn_runner import KrknRunner
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.custom_errors import PopulationSizeError, UniqueScenariosError
-from krkn_ai.utils.output import format_result_filename
+from krkn_ai.utils.output import format_result_filename, format_duration
 
 logger = get_logger(__name__)
 
@@ -68,34 +68,27 @@ class GeneticAlgorithm:
         # Initial population (Gen 0)
         self.population = self.create_population(self.config.population_size)
 
-        # Track start time if duration is set
-        start_time = None
-        if self.config.duration is not None:
-            start_time = time.time()
-            logger.info("Running algorithm with duration-based control: %d seconds", self.config.duration)
-            if self.config.generations is not None:
-                logger.info("Note: generations parameter (%d) will be ignored in favor of duration", self.config.generations)
-        else:
-            logger.info("Running algorithm with generation-based control: %d generations", self.config.generations)
+        # Variables to track the progress of the algorithm
+        start_time = time.time()
+        cur_generation = 0
 
-        # If duration is set, we'll use a while True loop and check duration inside.Otherwise, use the configured generations
-        use_duration_mode = self.config.duration is not None
-        max_generations = self.config.generations if not use_duration_mode else None
-
-        i = 0
         while True:
-            # Check generation limit if not using duration mode
-            if not use_duration_mode and i >= max_generations:
+            # Calculate elapsed time since the start of the algorithm
+            elapsed_time = time.time() - start_time
+
+            # Check generation limit if duration is not set
+            if self.config.duration is None and cur_generation >= self.config.generations:
+                logger.info("Completed %d generations in %s", cur_generation, format_duration(elapsed_time))
                 break
+
             # Check if duration has been exceeded
-            if self.config.duration is not None and start_time is not None:
-                elapsed_time = time.time() - start_time
+            if self.config.duration is not None:
                 if elapsed_time >= self.config.duration:
                     logger.info("Duration limit reached (%d seconds). Stopping algorithm.", self.config.duration)
-                    logger.info("Completed %d generations in %.2f seconds", i, elapsed_time)
+                    logger.info("Completed %d generations in %s", cur_generation, format_duration(elapsed_time))
                     break
                 remaining_time = self.config.duration - elapsed_time
-                logger.debug("Elapsed time: %.2f seconds, Remaining: %.2f seconds", elapsed_time, remaining_time)
+                logger.debug("Elapsed time: %s, Remaining: %s", format_duration(elapsed_time), format_duration(remaining_time))
 
             if len(self.population) == 0:
                 logger.warning("No more population found, stopping generations.")
@@ -107,12 +100,12 @@ class GeneticAlgorithm:
                 logger.info("%s, ", scenario)
             logger.info("--------------------------------------------------------")
 
-            logger.info("| Generation %d |", i + 1)
+            logger.info("| Generation %d |", cur_generation + 1)
             logger.info("--------------------------------------------------------")
 
             # Evaluate fitness of the current population
             fitness_scores = [
-                self.calculate_fitness(member, i) for member in self.population
+                self.calculate_fitness(member, cur_generation) for member in self.population
             ]
             # Find the best individual in the current generation
             # Note: If there is no best solution, it will still consider based on sorting order
@@ -155,7 +148,7 @@ class GeneticAlgorithm:
             if rng.random() < self.config.population_injection_rate:
                 self.population.extend(self.create_population(self.config.population_injection_size))
 
-            i += 1
+            cur_generation += 1
 
     def create_population(self, population_size) -> List[BaseScenario]:
         """Generate random population for algorithm"""

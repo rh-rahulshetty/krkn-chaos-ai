@@ -92,6 +92,7 @@ class KrknRunner:
         # Run command and fetch result
         if env_is_truthy('MOCK_RUN'):
             # Used for running mock tests
+            time.sleep(rng.randint(1, 3))
             log, returncode = "", 0
         else:
             # TODO: How to capture logs from composite run scenario
