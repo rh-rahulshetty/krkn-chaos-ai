@@ -52,14 +52,17 @@ class TestRunCommand:
                     mock_ga = Mock()
                     mock_ga_class.return_value = mock_ga
                     
+                    override_kubeconfig = '/override/kubeconfig'
                     result = runner.invoke(main, [
                         'run',
                         '--config', config_path,
-                        '--output', temp_output_dir
+                        '--output', temp_output_dir,
+                        '--kubeconfig', override_kubeconfig
                     ])
                     
                     assert result.exit_code == 0
-                    mock_read.assert_called_once()
+                    # Verify kubeconfig override was passed to read_config_from_file
+                    mock_read.assert_called_once_with(config_path, (), override_kubeconfig)
                     mock_ga.simulate.assert_called_once()
                     mock_ga.save.assert_called_once()
         finally:

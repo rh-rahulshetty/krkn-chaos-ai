@@ -150,7 +150,7 @@ class ClusterManager:
                     )
                 )
             
-            logger.info("Discovered %d PVCs in namespace %s", len(pvc_list), namespace.name)
+            logger.debug("Discovered %d PVCs in namespace %s", len(pvc_list), namespace.name)
             return pvc_list
         except Exception as e:
             logger.warning("Failed to list PVCs in namespace %s: %s", namespace.name, str(e))
