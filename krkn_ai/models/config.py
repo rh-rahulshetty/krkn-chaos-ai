@@ -146,6 +146,20 @@ class OutputConfig(BaseModel):
     graph_name_fmt: str = "scenario_%s.png"
     log_name_fmt: str = "scenario_%s.log"
 
+
+class ElasticConfig(BaseModel):
+    """
+    Configuration for Elasticsearch integration.
+    Stores Krkn-AI run results, fitness scores, and genetic algorithm configuration.
+    """
+    enable_elastic: bool = False  # Enable Elasticsearch integration
+    verify_certs: bool = True  # Verify SSL certificates
+    elastic_url: str = ""  # Elasticsearch URL (e.g., https://elasticsearch.example.com)
+    elastic_port: int = 9200  # Elasticsearch port
+    username: str = ""  # Elasticsearch username
+    password: str = ""  # Elasticsearch password
+    results_index: str = "krkn-ai-results"  # Index name for storing Krkn-AI results
+
 class HealthCheckResult(BaseModel):
     name: str
     timestamp: str = Field(default_factory=lambda: datetime.datetime.now().isoformat())
@@ -179,5 +193,7 @@ class ConfigFile(BaseModel):
     scenario: ScenarioConfig = ScenarioConfig()
 
     output: OutputConfig = OutputConfig()
+
+    elastic: Optional[ElasticConfig] = Field(default_factory=ElasticConfig)  # Elasticsearch configuration
 
     cluster_components: ClusterComponents

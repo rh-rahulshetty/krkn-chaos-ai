@@ -63,5 +63,15 @@ scenario:
   kubevirt-scenarios:
     enable: true
 
+# Elasticsearch configuration for storing run results
+elastic:
+  enable_elastic: false  # Set to true to enable Elasticsearch integration
+  verify_certs: true  # Verify SSL certificates
+  elastic_url: "http://localhost"  # Elasticsearch URL
+  elastic_port: 9200  # Elasticsearch port
+  username: ""  # Elasticsearch username (optional)
+  password: ""  # Elasticsearch password (optional)
+  results_index: "krkn-ai-results"  # Index name for storing Krkn-AI results
+
 cluster_components:
 {{ cluster_components }}

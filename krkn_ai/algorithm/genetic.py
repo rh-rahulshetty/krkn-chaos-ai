@@ -2,6 +2,7 @@ import os
 import copy
 import json
 import time
+import uuid
 from typing_extensions import Dict
 import yaml
 from typing import List, Tuple
@@ -19,6 +20,7 @@ from krkn_ai.chaos_engines.krkn_runner import KrknRunner
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.custom_errors import PopulationSizeError, UniqueScenariosError
 from krkn_ai.utils.output import format_result_filename, format_duration
+from krkn_ai.utils.elasticsearch import ElasticsearchClient
 
 logger = get_logger(__name__)
 
@@ -49,6 +51,21 @@ class GeneticAlgorithm:
 
         self.health_check_reporter = HealthCheckReporter(self.output_dir, self.config.output)
         self.generations_reporter = GenerationsReporter(self.output_dir, self.format)
+        
+        # Initialize Elasticsearch client if enabled
+        self.elastic_client = None
+        if self.config.elastic and self.config.elastic.enable_elastic:
+            self.elastic_client = ElasticsearchClient(self.config.elastic)
+            logger.info("Elasticsearch integration enabled")
+            # Test connection
+            if self.elastic_client.test_connection():
+                logger.info("Elasticsearch connection test: SUCCESS")
+            else:
+                logger.warning("Elasticsearch connection test: FAILED - Results may not be stored")
+        
+        # Generate unique run UUID for this experiment
+        self.run_uuid = str(uuid.uuid4())
+        logger.info("Krkn-AI run UUID: %s", self.run_uuid)
 
         if self.config.population_size < 2:
             raise PopulationSizeError("Population size should be at least 2")
@@ -203,6 +220,16 @@ class GeneticAlgorithm:
         self.save_scenario_result(scenario_result)
         self.health_check_reporter.plot_report(scenario_result)
         self.health_check_reporter.write_fitness_result(scenario_result)
+        
+        # Send to Elasticsearch if enabled
+        if self.elastic_client:
+            config_data = self.config.model_dump(mode='json')
+            success = self.elastic_client.send_scenario_result(scenario_result, self.run_uuid, config_data)
+            if success:
+                logger.debug("Scenario result sent to Elasticsearch (scenario_id: %d)", scenario_result.scenario_id)
+            else:
+                logger.warning("Failed to send scenario result to Elasticsearch (scenario_id: %d)", scenario_result.scenario_id)
+        
         return scenario_result
 
     def mutate(self, scenario: BaseScenario):
@@ -360,6 +387,21 @@ class GeneticAlgorithm:
         self.generations_reporter.save_best_generation_graph(self.best_of_generation)
         self.health_check_reporter.save_report(self.seen_population.values())
         self.health_check_reporter.sort_fitness_result_csv()
+        
+        # Send run summary to Elasticsearch if enabled
+        if self.elastic_client:
+            config_data = self.config.model_dump(mode='json')
+            total_generations = len(self.best_of_generation)
+            success = self.elastic_client.send_run_summary(
+                self.run_uuid,
+                config_data,
+                self.best_of_generation,
+                total_generations
+            )
+            if success:
+                logger.info("Run summary sent to Elasticsearch (run_uuid: %s)", self.run_uuid)
+            else:
+                logger.warning("Failed to send run summary to Elasticsearch (run_uuid: %s)", self.run_uuid)
 
     def save_config(self):
         logger.info("Saving config file to config.yaml")
