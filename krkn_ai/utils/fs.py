@@ -13,6 +13,7 @@ def preprocess_param_string(data: str, params: dict) -> str:
     '''
     Preprocess the health check url to replace the parameters with the values.
     '''
+    data = str(data)
     for k,v in params.items():
         data = data.replace(f'${k}', v)
     return data
@@ -30,17 +31,39 @@ def read_config_from_file(file_path: str, param: list[str] = None, kubeconfig: s
         config = yaml.safe_load(stream)
     if kubeconfig is not None and kubeconfig != '' and os.path.exists(kubeconfig):
         config['kubeconfig_file_path'] = kubeconfig
+
+    # param refers to Key-value passed with -p flag during krkn-ai test run
     if param:
-        # Keep track of parameters in config file
-        config['parameters'] = {}
+        params = {}
         for p in param:
             key, value = p.split('=')
-            config['parameters'][str(key)] = str(value)
+            params[str(key)] = str(value)
 
         # Replace parameter in health check url string
         if 'health_checks' in config and 'applications' in config['health_checks']:
             for health_check in config['health_checks']['applications']:
-                health_check['url'] = preprocess_param_string(health_check['url'], config['parameters'])
+                health_check['url'] = preprocess_param_string(health_check['url'], params)
+
+        # Replace parameter in elastic configuration
+        if 'elastic' in config and 'server' in config['elastic']:
+            config['elastic']['enable'] = is_truthy(
+                preprocess_param_string(config['elastic']['enable'], params)
+            )
+            config['elastic']['verify_certs'] = is_truthy(
+                preprocess_param_string(config['elastic']['verify_certs'], params)
+            )
+            config['elastic']['server'] = preprocess_param_string(config['elastic']['server'], params)
+            config['elastic']['port'] = preprocess_param_string(config['elastic']['port'], params)
+            config['elastic']['username'] = preprocess_param_string(config['elastic']['username'], params)
+            config['elastic']['password'] = preprocess_param_string(config['elastic']['password'], params)
+            config['elastic']['index'] = preprocess_param_string(config['elastic']['index'], params)
+
+        # Remove private parameters from config (starts with double __underscore)
+        config['parameters'] = {
+            k: v for k, v in params.items() 
+            if not k.startswith('__')
+        }
+
     return ConfigFile(**config)
 
 
@@ -49,6 +72,13 @@ def env_is_truthy(var: str):
     Checks whether a environment variable is set to truthy value.
     '''
     value = os.getenv(var, 'false')
+    return is_truthy(value)
+
+
+def is_truthy(value: str):
+    '''
+    Checks whether a value is set to truthy value.
+    '''
     value = value.lower().strip()
     return value in ['yes', 'y', 'true', '1']
 

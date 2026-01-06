@@ -51,4 +51,5 @@ class ElasticSearchClient:
             logger.info("Elasticsearch indexing is disabled")
     
     def __test_connection(self) -> bool:
-        return self.client.es.ping()
+        es_info = self.client.es.info()
+        return es_info is not None and 'version' in es_info

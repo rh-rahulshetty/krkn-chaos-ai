@@ -20,8 +20,8 @@ elastic:
   verify_certs: true  # Verify SSL certificates
   server: "http://localhost"  # Elasticsearch URL
   port: 9200  # Elasticsearch port
-  username: ""  # Elasticsearch username (optional)
-  password: ""  # Elasticsearch password (optional)
+  username: "$ES_USER"  # Elasticsearch username
+  password: "$__ES_PASSWORD"  # Elasticsearch password (start param with __ to treat as private)
   index: "krkn-ai-metrics"  # Index name for storing Krkn-AI results
 
 
