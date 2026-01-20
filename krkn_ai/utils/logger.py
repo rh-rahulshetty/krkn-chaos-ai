@@ -5,15 +5,17 @@ from typing import Optional
 
 _LOGGER_INITIALIZED = False
 _LOG_DIR: Optional[str] = None
+_VERBOSE: bool = False
 
 def init_logger(output_dir: Optional[str] = None, verbose: bool = False):
     """Initialize global logger configuration once."""
 
-    global _LOGGER_INITIALIZED, _LOG_DIR
+    global _LOGGER_INITIALIZED, _LOG_DIR, _VERBOSE
     if _LOGGER_INITIALIZED:
         return
 
     _LOG_DIR = output_dir
+    _VERBOSE = verbose
     log_level = logging.DEBUG if verbose else logging.INFO
 
     # Create root-safe parent logger name
@@ -69,3 +71,8 @@ def get_logger(name: str) -> logging.Logger:
 
 def get_log_dir() -> Optional[str]:
     return _LOG_DIR
+
+
+def is_verbose() -> bool:
+    """Return whether verbose mode is enabled."""
+    return _VERBOSE

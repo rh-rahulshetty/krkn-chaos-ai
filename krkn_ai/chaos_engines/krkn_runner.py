@@ -15,7 +15,7 @@ from krkn_ai.models.scenario.base import Scenario, BaseScenario, CompositeDepend
 from krkn_ai.models.scenario.factory import ScenarioFactory
 from krkn_ai.utils import run_shell
 from krkn_ai.utils.fs import env_is_truthy
-from krkn_ai.utils.logger import get_logger
+from krkn_ai.utils.logger import get_logger, is_verbose
 from krkn_ai.utils.prometheus import create_prometheus_client
 from krkn_ai.utils.rng import rng
 
@@ -106,8 +106,8 @@ class KrknRunner:
             # Start watching application urls for health checks
             health_check_watcher.run()
 
-            # Run command
-            log, returncode = run_shell(self.process_es_env_string(command, True), do_not_log=True)
+            # Run command (show logs when verbose mode is enabled)
+            log, returncode = run_shell(self.process_es_env_string(command, True), do_not_log=not is_verbose())
             
             # Extract return code from run log which is part of telemetry data present in the log
             returncode, run_uuid = self.__extract_returncode_from_run(log, returncode)
