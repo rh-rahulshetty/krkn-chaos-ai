@@ -175,8 +175,9 @@ class HealthCheckReporter:
             try:
                 existing_df = pd.read_csv(report_path)
                 df = pd.concat([existing_df, new_row], ignore_index=True)
-            except pd.errors.EmptyDataError:
-                # File exists but is empty
+            except (pd.errors.EmptyDataError, pd.errors.ParserError) as e:
+                # File exists but is empty or malformed, start fresh
+                logger.warning("Could not read existing CSV (%s), starting fresh: %s", report_path, e)
                 df = new_row
         else:
             df = new_row
