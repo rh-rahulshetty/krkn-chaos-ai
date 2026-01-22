@@ -4,14 +4,22 @@ import datetime
 import tempfile
 import time
 from typing import Optional, Tuple
-from unittest import runner
 
-from krkn_lib.prometheus.krkn_prometheus import KrknPrometheus
 from krkn_ai.chaos_engines.health_check_watcher import HealthCheckWatcher
-from krkn_ai.models.app import CommandRunResult, FitnessResult, FitnessScoreResult, KrknRunnerType
+from krkn_ai.models.app import (
+    CommandRunResult,
+    FitnessResult,
+    FitnessScoreResult,
+    KrknRunnerType,
+)
 from krkn_ai.models.config import ConfigFile, FitnessFunctionType
 from krkn_ai.models.custom_errors import FitnessFunctionCalculationError
-from krkn_ai.models.scenario.base import Scenario, BaseScenario, CompositeDependency, CompositeScenario
+from krkn_ai.models.scenario.base import (
+    Scenario,
+    BaseScenario,
+    CompositeDependency,
+    CompositeScenario,
+)
 from krkn_ai.models.scenario.factory import ScenarioFactory
 from krkn_ai.utils import run_shell
 from krkn_ai.utils.fs import env_is_truthy
@@ -52,7 +60,6 @@ class KrknRunner:
             logger.debug("Using user provided runner type: %s", runner_type)
             self.runner_type = runner_type
 
-
     def __check_runner_availability(self):
         # Check if krknctl is available
         krknctl_available = True
@@ -61,7 +68,7 @@ class KrknRunner:
         if returncode != 0:
             krknctl_available = False
             logger.warning("krknctl is not available.")
-        
+
         # Check if podman is available
         _, returncode = run_shell("podman --version", do_not_log=True)
         if returncode != 0:
@@ -69,7 +76,9 @@ class KrknRunner:
             logger.warning("podman is not available.")
 
         if krknctl_available is False and podman_available is False:
-            raise Exception("krknctl and podman are not available. Please install krknctl and podman.")
+            raise Exception(
+                "krknctl and podman are not available. Please install krknctl and podman."
+            )
 
         if krknctl_available:
             logger.debug("Using krknctl as runner.")
@@ -96,19 +105,21 @@ class KrknRunner:
         health_check_watcher = HealthCheckWatcher(self.config.health_checks)
 
         # Run command and fetch result
-        if env_is_truthy('MOCK_RUN'):
+        if env_is_truthy("MOCK_RUN"):
             # Used for running mock tests
             time.sleep(rng.randint(1, 3))
             log, returncode = "", 0
         else:
             # TODO: How to capture logs from composite run scenario
-            
+
             # Start watching application urls for health checks
             health_check_watcher.run()
 
             # Run command (show logs when verbose mode is enabled)
-            log, returncode = run_shell(self.process_es_env_string(command, True), do_not_log=not is_verbose())
-            
+            log, returncode = run_shell(
+                self.process_es_env_string(command, True), do_not_log=not is_verbose()
+            )
+
             # Extract return code from run log which is part of telemetry data present in the log
             returncode, run_uuid = self.__extract_returncode_from_run(log, returncode)
             logger.info("Krkn scenario return code: %d", returncode)
@@ -131,7 +142,7 @@ class KrknRunner:
             logger.warning(
                 "Krkn scenario failed with return code %d (misconfiguration). "
                 "Skipping fitness calculation to avoid data pollution.",
-                returncode
+                returncode,
             )
             if self.config.fitness_function.include_krkn_failure:
                 fitness_result.krkn_failure_score = -1.0
@@ -145,13 +156,12 @@ class KrknRunner:
                     start=start_time,
                     end=end_time,
                     query=self.config.fitness_function.query,
-                    fitness_type=self.config.fitness_function.type
+                    fitness_type=self.config.fitness_function.type,
                 )
                 fitness_result.fitness_score = fitness_value
             elif len(self.config.fitness_function.items) > 0:
                 fitness_result = self.calculate_fitness_score_for_items(
-                    start=start_time,
-                    end=end_time
+                    start=start_time, end=end_time
                 )
 
             # Include krkn hub run failure info to the fitness score
@@ -162,18 +172,24 @@ class KrknRunner:
 
             # Include health check failure and response time to the fitness score
             if self.config.fitness_function.include_health_check_failure:
-                fitness_result.health_check_failure_score = health_check_watcher.summarize_success_rate(health_check_results)
+                fitness_result.health_check_failure_score = (
+                    health_check_watcher.summarize_success_rate(health_check_results)
+                )
             if self.config.fitness_function.include_health_check_response_time:
-                fitness_result.health_check_response_time_score = health_check_watcher.summarize_response_time(health_check_results)
+                fitness_result.health_check_response_time_score = (
+                    health_check_watcher.summarize_response_time(health_check_results)
+                )
 
             # Calculate overall fitness score
             logger.debug("Fitness result: %s", fitness_result)
-            fitness_result.fitness_score = sum([
-                fitness_result.fitness_score,
-                fitness_result.krkn_failure_score,
-                fitness_result.health_check_failure_score,
-                fitness_result.health_check_response_time_score
-            ])
+            fitness_result.fitness_score = sum(
+                [
+                    fitness_result.fitness_score,
+                    fitness_result.krkn_failure_score,
+                    fitness_result.health_check_failure_score,
+                    fitness_result.health_check_response_time_score,
+                ]
+            )
             logger.info("Fitness score: %s", fitness_result.fitness_score)
 
         return CommandRunResult(
@@ -186,7 +202,7 @@ class KrknRunner:
             end_time=end_time,
             fitness_result=fitness_result,
             health_check_results=health_check_results,
-            run_uuid=run_uuid
+            run_uuid=run_uuid,
         )
 
     def runner_command(self, scenario: Scenario):
@@ -224,9 +240,13 @@ class KrknRunner:
     def process_es_env_string(self, command: str, enable: bool):
         # Patch Elasticsearch (ES) configuration into runner command for Krknctl or KrknHub
 
-        if not enable or self.config.elastic.enable is False:
+        if (
+            not enable
+            or self.config.elastic is None
+            or self.config.elastic.enable is False
+        ):
             # If ES is not enabled, remove the ES environment placeholder
-            return command.replace('{es_env_list}', "")
+            return command.replace("{es_env_list}", "")
 
         es_env_list = ""
         if self.runner_type == KrknRunnerType.HUB_RUNNER:
@@ -235,7 +255,7 @@ class KrknRunner:
                 port=self.config.elastic.port,
                 username=self.config.elastic.username,
                 password=self.config.elastic.password,
-                verify_certs=self.config.elastic.verify_certs
+                verify_certs=self.config.elastic.verify_certs,
             )
         elif self.runner_type == KrknRunnerType.CLI_RUNNER:
             es_env_list = KRKNCTL_ES_TEMPLATE.format(
@@ -243,10 +263,10 @@ class KrknRunner:
                 port=self.config.elastic.port,
                 username=self.config.elastic.username,
                 password=self.config.elastic.password,
-                verify_certs=self.config.elastic.verify_certs
+                verify_certs=self.config.elastic.verify_certs,
             )
 
-        return command.replace('{es_env_list}', es_env_list)
+        return command.replace("{es_env_list}", es_env_list)
 
     def graph_command(self, scenario: CompositeScenario):
         # Create directory under output folder to save CompositeScenario config
@@ -267,10 +287,7 @@ class KrknRunner:
         return command
 
     def __expand_composite_json(
-        self,
-        scenario: CompositeScenario,
-        root: str = "$",
-        depends_on: str = None
+        self, scenario: CompositeScenario, root: str = "$", depends_on: str = None
     ):
         result = {}
         scenario_a = scenario.scenario_a
@@ -283,8 +300,7 @@ class KrknRunner:
         # Create a dummy scenario which will be the root for scenario A and B.
         if scenario.dependency == CompositeDependency.NONE:
             result[key_root] = self.__generate_scenario_json(
-                ScenarioFactory.create_dummy_scenario(),
-                depends_on=depends_on
+                ScenarioFactory.create_dummy_scenario(), depends_on=depends_on
             )
 
         # Generate json for scenario A
@@ -298,8 +314,10 @@ class KrknRunner:
             elif scenario.dependency == CompositeDependency.NONE:
                 key = key_root
 
-            # Since we are traversing left of the tree, key_a will contain the unique parent id 
-            result.update(self.__expand_composite_json(scenario_a, key_a, depends_on=key))
+            # Since we are traversing left of the tree, key_a will contain the unique parent id
+            result.update(
+                self.__expand_composite_json(scenario_a, key_a, depends_on=key)
+            )
         elif isinstance(scenario_a, Scenario):
             key = None
             if scenario.dependency == CompositeDependency.A_ON_B:
@@ -325,7 +343,9 @@ class KrknRunner:
                 key = key_root
 
             # Since we are traversing right of the tree, key_b will contain the unique parent id
-            result.update(self.__expand_composite_json(scenario_b, key_b, depends_on=key))
+            result.update(
+                self.__expand_composite_json(scenario_b, key_b, depends_on=key)
+            )
         elif isinstance(scenario_b, Scenario):
             key = None
             if scenario.dependency == CompositeDependency.A_ON_B:
@@ -345,7 +365,7 @@ class KrknRunner:
         # generate a json based on https://krkn-chaos.dev/docs/krknctl/randomized-chaos-testing/#example
         # It uses krknhub env naming to define test parameters.
         env = {
-            param.get_name(return_krknhub_name=True): str(param.get_value()) 
+            param.get_name(return_krknhub_name=True): str(param.get_value())
             for param in scenario.parameters
         }
         result = {
@@ -364,8 +384,8 @@ class KrknRunner:
 
         # Retry to calculate fitness function if it fails
         # Case when data isn't available in prometheus for latest time range
-        retries = 3 # Number of retries to calculate fitness function
-        retry_delay = 10 # in seconds
+        retries = 3  # Number of retries to calculate fitness function
+        retry_delay = 10  # in seconds
         for retry in range(retries):
             try:
                 if fitness_type == FitnessFunctionType.point:
@@ -374,14 +394,18 @@ class KrknRunner:
                     return self.calculate_range_fitness(start, end, query)
             except Exception as error:
                 logger.error(f"Fitness function calculation failed: {error}")
-                logger.info(f"Retrying fitness function calculation... (retry {retry + 1} of {retries})")
+                logger.info(
+                    f"Retrying fitness function calculation... (retry {retry + 1} of {retries})"
+                )
                 time.sleep(retry_delay)
-        raise FitnessFunctionCalculationError(f"Fitness function calculation failed after {retries} retries")
+        raise FitnessFunctionCalculationError(
+            f"Fitness function calculation failed after {retries} retries"
+        )
 
     def calculate_fitness_score_for_items(self, start, end):
-        '''
+        """
         This is used to compute fitness scores when multiple SLOs are defined.
-        '''
+        """
         results = []
         overall_score = 0
         for fitness_item in self.config.fitness_function.items:
@@ -389,22 +413,21 @@ class KrknRunner:
                 start=start,
                 end=end,
                 query=fitness_item.query,
-                fitness_type=fitness_item.type
+                fitness_type=fitness_item.type,
             )
             fitness_value = fitness_item.weight * raw_score
             overall_score += fitness_value
 
             # Store Result
-            results.append(FitnessScoreResult(
-                id=fitness_item.id,
-                fitness_score=raw_score,
-                weighted_score=fitness_value
-            ))
+            results.append(
+                FitnessScoreResult(
+                    id=fitness_item.id,
+                    fitness_score=raw_score,
+                    weighted_score=fitness_value,
+                )
+            )
 
-        return FitnessResult(
-            fitness_score=overall_score,
-            scores=results
-        )
+        return FitnessResult(fitness_score=overall_score, scores=results)
 
     def calculate_point_fitness(self, start, end, query):
         """Takes difference between fitness function at start/end intervals of test.
@@ -457,7 +480,9 @@ class KrknRunner:
 
         return float(result)
 
-    def __extract_returncode_from_run(self, log: str, default_returncode: int) -> Tuple[int, Optional[str]]:
+    def __extract_returncode_from_run(
+        self, log: str, default_returncode: int
+    ) -> Tuple[int, Optional[str]]:
         """
         Try to extracts Krkn return code and uuid from the run log. If extraction fails, return default_returncode.
         """
@@ -465,61 +490,61 @@ class KrknRunner:
             # TODO: Look into if we can save telemetry data to file from Krkn itself.
             # Hacky way to extract return code from log
             # Find the line with "Chaos data:" and extract JSON from next lines
-            lines = log.split('\n')
+            lines = log.split("\n")
             chaos_data_idx = -1
-            
+
             for i, line in enumerate(lines):
-                if 'Chaos data:' in line:
+                if "Chaos data:" in line:
                     chaos_data_idx = i + 1
                     break
-            
+
             if chaos_data_idx == -1:
                 logger.warning("Could not find 'Chaos data:' in log")
                 return default_returncode, None
-            
+
             # Extract JSON by counting braces
             json_lines = []
             brace_count = 0
             started = False
-            
+
             for i in range(chaos_data_idx, len(lines)):
                 line = lines[i]
-                
+
                 # Count opening and closing braces
                 for char in line:
-                    if char == '{':
+                    if char == "{":
                         brace_count += 1
                         started = True
-                    elif char == '}':
+                    elif char == "}":
                         brace_count -= 1
-                
+
                 if started:
                     json_lines.append(line)
-                    
+
                 # When braces are balanced, we've found the complete JSON
                 if started and brace_count == 0:
                     break
-            
+
             if not json_lines:
                 logger.warning("Could not extract JSON content from log")
                 return default_returncode, None
-            
+
             # Join all JSON lines into a single string
-            json_str = '\n'.join(json_lines)
+            json_str = "\n".join(json_lines)
             chaos_data = json.loads(json_str)
 
             # Extract exit_status from first scenario
-            scenarios = chaos_data.get('telemetry', {}).get('scenarios', [])
+            scenarios = chaos_data.get("telemetry", {}).get("scenarios", [])
             if scenarios and len(scenarios) > 0:
-                exit_status = scenarios[0].get('exit_status', default_returncode)
-                run_uuid = chaos_data.get('telemetry', {}).get('run_uuid', None)
+                exit_status = scenarios[0].get("exit_status", default_returncode)
+                run_uuid = chaos_data.get("telemetry", {}).get("run_uuid", None)
                 logger.debug("Extracted exit_status: %s", exit_status)
                 logger.debug("Extracted run_uuid: %s", run_uuid)
                 return exit_status, run_uuid
-            
+
             logger.warning("No exit_status found in telemetry data")
             return default_returncode, None
-            
+
         except Exception as e:
             logger.error("Failed to extract return code from run log: %s", e)
             return default_returncode, None

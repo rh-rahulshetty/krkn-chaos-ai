@@ -1,7 +1,11 @@
 from typing import List, Tuple
 from krkn_ai.models.cluster_components import ClusterComponents
 from krkn_ai.models.config import ConfigFile
-from krkn_ai.models.custom_errors import MissingScenarioError, ScenarioInitError, ScenarioParameterInitError
+from krkn_ai.models.custom_errors import (
+    MissingScenarioError,
+    ScenarioInitError,
+    ScenarioParameterInitError,
+)
 from krkn_ai.models.scenario.base import Scenario
 from krkn_ai.models.scenario.scenario_network import NetworkScenario
 from krkn_ai.utils.logger import get_logger
@@ -38,33 +42,39 @@ scenario_specs = [
     ("kubevirt_scenarios", KubevirtDisruptionScenario),
 ]
 
+
 class ScenarioFactory:
     @staticmethod
-    def list_scenarios(config: ConfigFile) -> List[Tuple[str, Scenario]]:
+    def list_scenarios(config: ConfigFile) -> List[Tuple[str, type[Scenario]]]:
         # List all scenarios that are set in config
         candidates = [
             (attr, factory)
             for attr, factory in scenario_specs
-            if getattr(config.scenario, attr) is not None and getattr(config.scenario, attr).enable
+            if getattr(config.scenario, attr) is not None
+            and getattr(config.scenario, attr).enable
         ]
         return candidates
 
     @staticmethod
-    def generate_valid_scenarios(config: ConfigFile) -> List[Tuple[str, Scenario]]:
-        '''
+    def generate_valid_scenarios(
+        config: ConfigFile,
+    ) -> List[Tuple[str, type[Scenario]]]:
+        """
         Validate all scenarios that are set in config and are valid.
 
         Returns a list of valid scenarios.
-        '''
+        """
         # Get all scenarios that are set in config
         candidates = ScenarioFactory.list_scenarios(config)
 
         if len(candidates) == 0:
-            raise MissingScenarioError("No scenarios found. Please provide atleast 1 scenario.")
+            raise MissingScenarioError(
+                "No scenarios found. Please provide atleast 1 scenario."
+            )
 
         # Initialize kubeconfig for PVC utilities
         initialize_kubeconfig(config.kubeconfig_file_path)
-        
+
         # Validate scenarios and find valid scenarios
         valid_scenarios = []
         for name, cls in candidates:
@@ -73,25 +83,34 @@ class ScenarioFactory:
                 cls(cluster_components=config.cluster_components)
                 valid_scenarios.append((name, cls))
             except ScenarioParameterInitError as error:
-                logger.warning("Unable to initialize scenario %s, please make sure cluster components for scenario are valid", name)
+                logger.warning(
+                    "Unable to initialize scenario %s, please make sure cluster components for scenario are valid",
+                    name,
+                )
                 logger.debug("Error details: %s", error)
             except Exception as error:
                 logger.warning("Unable to instantiate scenario %s: %s", name, error)
 
         if len(valid_scenarios) == 0:
-            raise MissingScenarioError("No valid scenarios found. Please validate cluster components in config file.")
+            raise MissingScenarioError(
+                "No valid scenarios found. Please validate cluster components in config file."
+            )
 
-        logger.debug("Identified %d valid scenarios: %s", len(valid_scenarios), [name for name, _ in valid_scenarios])
+        logger.debug(
+            "Identified %d valid scenarios: %s",
+            len(valid_scenarios),
+            [name for name, _ in valid_scenarios],
+        )
         return valid_scenarios
 
     @staticmethod
     def generate_random_scenario(
         config: ConfigFile,
-        candidates: List[Tuple[str, Scenario]],
+        candidates: List[Tuple[str, type[Scenario]]],
     ):
-        '''
+        """
         Generate a random scenario from the list of valid scenarios.
-        '''
+        """
         try:
             # Unpack Scenario class and create instance
             _, cls = rng.choice(candidates)

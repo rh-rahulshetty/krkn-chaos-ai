@@ -1,5 +1,8 @@
 from krkn_ai.models.scenario.base import Scenario
-from krkn_ai.models.scenario.parameters import *
+from krkn_ai.models.scenario.parameters import (
+    DummyEndParameter,
+    DummyExitStatusParameter,
+)
 
 
 class DummyScenario(Scenario):

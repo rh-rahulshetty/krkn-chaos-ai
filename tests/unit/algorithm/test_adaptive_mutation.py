@@ -1,8 +1,9 @@
 """
 Tests for GeneticAlgorithm.adapt_mutation_rate method
 """
+
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from krkn_ai.models.config import AdaptiveMutation
 from krkn_ai.models.app import FitnessResult
@@ -30,7 +31,9 @@ class TestAdaptMutationRateEarlyReturns:
         assert genetic_algorithm.config.scenario_mutation_rate == original_rate
 
     @pytest.mark.parametrize("generations", [[], [make_generation_result(10.0)]])
-    def test_returns_early_with_insufficient_generations(self, genetic_algorithm, generations):
+    def test_returns_early_with_insufficient_generations(
+        self, genetic_algorithm, generations
+    ):
         """Should return when fewer than 2 generations exist"""
         genetic_algorithm.config.adaptive_mutation.enable = True
         genetic_algorithm.best_of_generation = generations
@@ -46,13 +49,16 @@ class TestAdaptMutationRateEarlyReturns:
 class TestAdaptMutationRateStagnantTracking:
     """Test stagnant generation counting"""
 
-    @pytest.mark.parametrize("prev,curr,expected_stagnant", [
-        (10.0, 10.1, 3),   # Small improvement (0.1 < 0.5) -> increment
-        (10.0, 10.0, 3),   # Zero improvement -> increment
-        (12.0, 10.0, 3),   # Negative improvement -> increment
-        (10.0, 11.0, 0),   # Good improvement (1.0 >= 0.5) -> reset
-        (10.0, 10.5, 0),   # Exactly at threshold -> reset
-    ])
+    @pytest.mark.parametrize(
+        "prev,curr,expected_stagnant",
+        [
+            (10.0, 10.1, 3),  # Small improvement (0.1 < 0.5) -> increment
+            (10.0, 10.0, 3),  # Zero improvement -> increment
+            (12.0, 10.0, 3),  # Negative improvement -> increment
+            (10.0, 11.0, 0),  # Good improvement (1.0 >= 0.5) -> reset
+            (10.0, 10.5, 0),  # Exactly at threshold -> reset
+        ],
+    )
     def test_stagnant_tracking(self, genetic_algorithm, prev, curr, expected_stagnant):
         """Should track stagnant generations based on improvement vs threshold"""
         genetic_algorithm.config.adaptive_mutation = AdaptiveMutation(
@@ -60,7 +66,7 @@ class TestAdaptMutationRateStagnantTracking:
         )
         genetic_algorithm.best_of_generation = [
             make_generation_result(prev),
-            make_generation_result(curr)
+            make_generation_result(curr),
         ]
         genetic_algorithm.stagnant_generations = 2
 
@@ -79,7 +85,7 @@ class TestAdaptMutationRateUpdate:
         )
         genetic_algorithm.best_of_generation = [
             make_generation_result(10.0),
-            make_generation_result(10.1)
+            make_generation_result(10.1),
         ]
         genetic_algorithm.stagnant_generations = 3  # Will become 4, still < 5
         original_rate = genetic_algorithm.config.scenario_mutation_rate
@@ -97,7 +103,7 @@ class TestAdaptMutationRateUpdate:
         genetic_algorithm.config.scenario_mutation_rate = 0.3
         genetic_algorithm.best_of_generation = [
             make_generation_result(10.0),
-            make_generation_result(10.1)
+            make_generation_result(10.1),
         ]
         genetic_algorithm.stagnant_generations = 4  # Will become 5, trigger update
 
@@ -105,4 +111,3 @@ class TestAdaptMutationRateUpdate:
 
         assert genetic_algorithm.config.scenario_mutation_rate == pytest.approx(0.36)
         assert genetic_algorithm.stagnant_generations == 0
-

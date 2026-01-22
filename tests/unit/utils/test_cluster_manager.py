@@ -1,13 +1,12 @@
 """
 ClusterManager unit tests
 """
+
 import pytest
 from unittest.mock import Mock, patch
 
 from krkn_ai.utils.cluster_manager import ClusterManager
-from krkn_ai.models.cluster_components import (
-    Namespace
-)
+from krkn_ai.models.cluster_components import Namespace
 
 
 class TestClusterManager:
@@ -27,22 +26,30 @@ class TestClusterManager:
     @pytest.fixture
     def cluster_manager(self, mock_krkn_k8s):
         """Create ClusterManager instance with mocked dependencies"""
-        with patch('krkn_ai.utils.cluster_manager.KrknKubernetes', return_value=mock_krkn_k8s):
+        with patch(
+            "krkn_ai.utils.cluster_manager.KrknKubernetes", return_value=mock_krkn_k8s
+        ):
             return ClusterManager(kubeconfig="/tmp/test-kubeconfig")
 
-    def test_initialization_creates_cluster_manager_with_kubeconfig(self, mock_krkn_k8s):
+    def test_initialization_creates_cluster_manager_with_kubeconfig(
+        self, mock_krkn_k8s
+    ):
         """Test that ClusterManager initializes correctly with kubeconfig"""
-        with patch('krkn_ai.utils.cluster_manager.KrknKubernetes', return_value=mock_krkn_k8s):
+        with patch(
+            "krkn_ai.utils.cluster_manager.KrknKubernetes", return_value=mock_krkn_k8s
+        ):
             manager = ClusterManager(kubeconfig="/tmp/test-kubeconfig")
             assert manager.kubeconfig == "/tmp/test-kubeconfig"
             assert manager.krkn_k8s == mock_krkn_k8s
             assert manager.core_api == mock_krkn_k8s.cli
 
-    def test_discover_components_returns_cluster_components_with_namespaces_and_nodes(self, cluster_manager, mock_krkn_k8s):
+    def test_discover_components_returns_cluster_components_with_namespaces_and_nodes(
+        self, cluster_manager, mock_krkn_k8s
+    ):
         """Test discover_components returns ClusterComponents with namespaces and nodes"""
         # Mock namespace listing - need to provide pattern that matches
         mock_krkn_k8s.list_namespaces.return_value = ["default"]
-        
+
         # Mock pod listing
         mock_pod = Mock()
         mock_pod.metadata.name = "test-pod"
@@ -52,20 +59,24 @@ class TestClusterManager:
         mock_pod.spec = Mock()
         mock_pod.spec.containers = [mock_container]
         cluster_manager.core_api.list_namespaced_pod.return_value.items = [mock_pod]
-        
+
         # Mock service listing
         mock_service = Mock()
         mock_service.metadata.name = "test-service"
         mock_service.metadata.labels = {}
         mock_service.spec.ports = [Mock(port=80, target_port=8080, protocol="TCP")]
-        cluster_manager.core_api.list_namespaced_service.return_value.items = [mock_service]
-        
+        cluster_manager.core_api.list_namespaced_service.return_value.items = [
+            mock_service
+        ]
+
         # Mock PVC listing
         mock_pvc = Mock()
         mock_pvc.metadata.name = "test-pvc"
         mock_pvc.metadata.labels = {}
-        cluster_manager.core_api.list_namespaced_persistent_volume_claim.return_value.items = [mock_pvc]
-        
+        cluster_manager.core_api.list_namespaced_persistent_volume_claim.return_value.items = [
+            mock_pvc
+        ]
+
         # Mock node listing
         mock_node = Mock()
         mock_node.metadata.name = "test-node"
@@ -73,20 +84,26 @@ class TestClusterManager:
         mock_node.spec.taints = None
         mock_node.status.allocatable = {"cpu": "2", "memory": "4Gi"}
         cluster_manager.core_api.list_node.return_value.items = [mock_node]
-        
+
         # Mock node metrics
         cluster_manager.custom_obj_api.list_cluster_custom_object.return_value = {
-            "items": [{
-                "metadata": {"name": "test-node"},
-                "usage": {"cpu": "1", "memory": "2Gi"}
-            }]
+            "items": [
+                {
+                    "metadata": {"name": "test-node"},
+                    "usage": {"cpu": "1", "memory": "2Gi"},
+                }
+            ]
         }
-        
+
         # Mock node interfaces
-        with patch('krkn_ai.utils.cluster_manager.run_shell', return_value=("eth0\nens5\n", 0)):
+        with patch(
+            "krkn_ai.utils.cluster_manager.run_shell", return_value=("eth0\nens5\n", 0)
+        ):
             # Provide pattern that matches "default" namespace
-            components = cluster_manager.discover_components(namespace_pattern="default")
-        
+            components = cluster_manager.discover_components(
+                namespace_pattern="default"
+            )
+
         assert len(components.namespaces) == 1
         assert components.namespaces[0].name == "default"
         assert len(components.namespaces[0].pods) == 1
@@ -98,20 +115,20 @@ class TestClusterManager:
         """Test parse_cpu handles nanocores, microcores, millicores, and cores"""
         # Test nanocores
         assert ClusterManager.parse_cpu("1000000n") == 1.0
-        
+
         # Test microcores
         assert ClusterManager.parse_cpu("1000u") == 1.0
-        
+
         # Test millicores
         assert ClusterManager.parse_cpu("500m") == 500.0
-        
+
         # Test cores
         assert ClusterManager.parse_cpu("2") == 2000.0
         assert ClusterManager.parse_cpu("0.5") == 500.0
-        
+
         # Test None
         assert ClusterManager.parse_cpu(None) == 0.0
-        
+
         # Test invalid format raises ValueError
         with pytest.raises(ValueError, match="Unrecognized CPU format"):
             ClusterManager.parse_cpu("invalid")
@@ -120,36 +137,42 @@ class TestClusterManager:
         """Test parse_memory handles binary (Ki/Mi/Gi) and SI (K/M/G) units"""
         # Test binary units
         assert ClusterManager.parse_memory("1024Ki") == 1024 * 1024
-        assert ClusterManager.parse_memory("1Mi") == 1024 ** 2
-        assert ClusterManager.parse_memory("1Gi") == 1024 ** 3
-        
+        assert ClusterManager.parse_memory("1Mi") == 1024**2
+        assert ClusterManager.parse_memory("1Gi") == 1024**3
+
         # Test SI units
         assert ClusterManager.parse_memory("1000K") == 1000 * 1000
-        assert ClusterManager.parse_memory("1M") == 1000 ** 2
-        
+        assert ClusterManager.parse_memory("1M") == 1000**2
+
         # Test plain bytes
         assert ClusterManager.parse_memory("1024") == 1024
         assert ClusterManager.parse_memory("512.5") == 512
-        
+
         # Test None
         assert ClusterManager.parse_memory(None) == 0
-        
+
         # Test invalid format raises ValueError
         with pytest.raises(ValueError, match="Unable to parse memory string"):
             ClusterManager.parse_memory("invalid")
-        
+
         with pytest.raises(ValueError, match="Unknown memory unit"):
             ClusterManager.parse_memory("100X")
 
-    def test_list_namespaces_filters_by_pattern_when_provided(self, cluster_manager, mock_krkn_k8s):
+    def test_list_namespaces_filters_by_pattern_when_provided(
+        self, cluster_manager, mock_krkn_k8s
+    ):
         """Test list_namespaces filters namespaces by pattern"""
-        mock_krkn_k8s.list_namespaces.return_value = ["default", "kube-system", "test-ns"]
-        
+        mock_krkn_k8s.list_namespaces.return_value = [
+            "default",
+            "kube-system",
+            "test-ns",
+        ]
+
         # Test with pattern - use regex that matches multiple namespaces
         namespaces = cluster_manager.list_namespaces("default|test-ns")
         assert len(namespaces) == 2
         assert {ns.name for ns in namespaces} == {"default", "test-ns"}
-        
+
         # Test with pattern matching all (.* matches everything)
         namespaces = cluster_manager.list_namespaces(".*")
         assert len(namespaces) == 3
@@ -158,15 +181,17 @@ class TestClusterManager:
     def test_list_pvcs_handles_exceptions_gracefully(self, cluster_manager):
         """Test list_pvcs returns empty list when exception occurs"""
         namespace = Namespace(name="test-ns")
-        cluster_manager.core_api.list_namespaced_persistent_volume_claim.side_effect = Exception("API error")
-        
+        cluster_manager.core_api.list_namespaced_persistent_volume_claim.side_effect = (
+            Exception("API error")
+        )
+
         pvcs = cluster_manager.list_pvcs(namespace)
         assert pvcs == []
 
     def test_list_pods_filters_by_labels_and_skips_pods_by_name(self, cluster_manager):
         """Test list_pods filters pods by label patterns and skips pods by name patterns"""
         namespace = Namespace(name="test-ns")
-        
+
         # Create mock pods
         mock_pod1 = Mock()
         mock_pod1.metadata.name = "app-pod"
@@ -175,7 +200,7 @@ class TestClusterManager:
         mock_container1.name = "container1"
         mock_pod1.spec = Mock()
         mock_pod1.spec.containers = [mock_container1]
-        
+
         mock_pod2 = Mock()
         mock_pod2.metadata.name = "skip-me"
         mock_pod2.metadata.labels = {"app": "myapp"}
@@ -183,12 +208,17 @@ class TestClusterManager:
         mock_container2.name = "container2"
         mock_pod2.spec = Mock()
         mock_pod2.spec.containers = [mock_container2]
-        
-        cluster_manager.core_api.list_namespaced_pod.return_value.items = [mock_pod1, mock_pod2]
-        
+
+        cluster_manager.core_api.list_namespaced_pod.return_value.items = [
+            mock_pod1,
+            mock_pod2,
+        ]
+
         # Test filtering by label pattern and skipping by name pattern
-        pods = cluster_manager.list_pods(namespace, pod_labels_patterns="app", skip_pod_name_patterns=["skip-me"])
-        
+        pods = cluster_manager.list_pods(
+            namespace, pod_labels_patterns="app", skip_pod_name_patterns=["skip-me"]
+        )
+
         assert len(pods) == 1
         assert pods[0].name == "app-pod"
         assert pods[0].labels == {"app": "myapp"}
@@ -196,19 +226,25 @@ class TestClusterManager:
     def test_list_services_handles_ports_correctly(self, cluster_manager):
         """Test list_services processes service ports and handles None port values"""
         namespace = Namespace(name="test-ns")
-        
+
         mock_service1 = Mock()
         mock_service1.metadata.name = "test-service"
         mock_service1.metadata.labels = {"app": "test"}
         mock_port1 = Mock(port=80, target_port=8080, protocol="TCP")
-        mock_port2 = Mock(port=None, target_port=9090, protocol="UDP")  # None port should be skipped
-        mock_port3 = Mock(port=443, target_port=None, protocol=None)  # None protocol should default to TCP
+        mock_port2 = Mock(
+            port=None, target_port=9090, protocol="UDP"
+        )  # None port should be skipped
+        mock_port3 = Mock(
+            port=443, target_port=None, protocol=None
+        )  # None protocol should default to TCP
         mock_service1.spec.ports = [mock_port1, mock_port2, mock_port3]
-        
-        cluster_manager.core_api.list_namespaced_service.return_value.items = [mock_service1]
-        
+
+        cluster_manager.core_api.list_namespaced_service.return_value.items = [
+            mock_service1
+        ]
+
         services = cluster_manager.list_services(namespace)
-        
+
         assert len(services) == 1
         assert services[0].name == "test-service"
         assert len(services[0].ports) == 2  # Only ports with non-None port values
@@ -217,23 +253,27 @@ class TestClusterManager:
         assert services[0].ports[1].port == 443
         assert services[0].ports[1].protocol == "TCP"  # Default protocol
 
-    def test_list_containers_extracts_container_names_from_pod_spec(self, cluster_manager):
+    def test_list_containers_extracts_container_names_from_pod_spec(
+        self, cluster_manager
+    ):
         """Test list_containers extracts container names from pod spec"""
         mock_container1 = Mock()
         mock_container1.name = "container1"
         mock_container2 = Mock()
         mock_container2.name = "container2"
-        
+
         mock_pod_spec = Mock()
         mock_pod_spec.containers = [mock_container1, mock_container2]
-        
+
         containers = cluster_manager.list_containers(mock_pod_spec)
-        
+
         assert len(containers) == 2
         assert containers[0].name == "container1"
         assert containers[1].name == "container2"
 
-    def test_list_nodes_filters_labels_and_handles_taints_and_metrics(self, cluster_manager):
+    def test_list_nodes_filters_labels_and_handles_taints_and_metrics(
+        self, cluster_manager
+    ):
         """Test list_nodes filters node labels, formats taints, and calculates free resources"""
         # Mock node
         mock_node = Mock()
@@ -241,7 +281,7 @@ class TestClusterManager:
         mock_node.metadata.labels = {
             "kubernetes.io/hostname": "test-node",
             "node-role.kubernetes.io/worker": "",
-            "custom-label": "value"
+            "custom-label": "value",
         }
         mock_taint = Mock()
         mock_taint.key = "NoSchedule"
@@ -250,19 +290,26 @@ class TestClusterManager:
         mock_node.spec.taints = [mock_taint]
         mock_node.status.allocatable = {"cpu": "2", "memory": "4Gi"}
         cluster_manager.core_api.list_node.return_value.items = [mock_node]
-        
+
         # Mock node metrics
         cluster_manager.custom_obj_api.list_cluster_custom_object.return_value = {
-            "items": [{
-                "metadata": {"name": "test-node"},
-                "usage": {"cpu": "500m", "memory": "2Gi"}
-            }]
+            "items": [
+                {
+                    "metadata": {"name": "test-node"},
+                    "usage": {"cpu": "500m", "memory": "2Gi"},
+                }
+            ]
         }
-        
+
         # Mock node interfaces
-        with patch('krkn_ai.utils.cluster_manager.run_shell', return_value=("eth0\nens5\nlo\n", 0)):
-            nodes = cluster_manager.list_nodes(node_label_pattern="kubernetes.io/hostname|custom-label")
-        
+        with patch(
+            "krkn_ai.utils.cluster_manager.run_shell",
+            return_value=("eth0\nens5\nlo\n", 0),
+        ):
+            nodes = cluster_manager.list_nodes(
+                node_label_pattern="kubernetes.io/hostname|custom-label"
+            )
+
         assert len(nodes) == 1
         assert nodes[0].name == "test-node"
         assert "kubernetes.io/hostname" in nodes[0].labels
@@ -272,7 +319,9 @@ class TestClusterManager:
         assert nodes[0].free_cpu == 1500.0  # 2000m - 500m
         assert len(nodes[0].interfaces) == 2  # eth0 and ens5, lo is filtered out
 
-    def test_list_nodes_handles_metrics_and_interfaces_exceptions(self, cluster_manager):
+    def test_list_nodes_handles_metrics_and_interfaces_exceptions(
+        self, cluster_manager
+    ):
         """Test list_nodes handles exceptions when fetching metrics or interfaces"""
         mock_node = Mock()
         mock_node.metadata.name = "test-node"
@@ -280,14 +329,16 @@ class TestClusterManager:
         mock_node.spec.taints = None
         mock_node.status.allocatable = {"cpu": "2", "memory": "4Gi"}
         cluster_manager.core_api.list_node.return_value.items = [mock_node]
-        
+
         # Mock metrics API failure
-        cluster_manager.custom_obj_api.list_cluster_custom_object.side_effect = Exception("Metrics API error")
-        
+        cluster_manager.custom_obj_api.list_cluster_custom_object.side_effect = (
+            Exception("Metrics API error")
+        )
+
         # Mock interfaces failure
-        with patch('krkn_ai.utils.cluster_manager.run_shell', return_value=("", 1)):
+        with patch("krkn_ai.utils.cluster_manager.run_shell", return_value=("", 1)):
             nodes = cluster_manager.list_nodes()
-        
+
         assert len(nodes) == 1
         assert nodes[0].name == "test-node"
         assert nodes[0].free_cpu == -1  # Error indicator
@@ -296,19 +347,23 @@ class TestClusterManager:
 
     def test_list_node_interfaces_filters_network_interfaces(self, cluster_manager):
         """Test list_node_interfaces filters and returns only ens/eth interfaces"""
-        with patch('krkn_ai.utils.cluster_manager.run_shell', return_value=("eth0\nens5\nlo\novs-system\nbr-ex\n", 0)):
+        with patch(
+            "krkn_ai.utils.cluster_manager.run_shell",
+            return_value=("eth0\nens5\nlo\novs-system\nbr-ex\n", 0),
+        ):
             interfaces = cluster_manager.list_node_interfaces("test-node")
-        
+
         assert len(interfaces) == 2
         assert "eth0" in interfaces
         assert "ens5" in interfaces
         assert "lo" not in interfaces
         assert "ovs-system" not in interfaces
 
-    def test_list_node_interfaces_returns_empty_list_on_shell_error(self, cluster_manager):
+    def test_list_node_interfaces_returns_empty_list_on_shell_error(
+        self, cluster_manager
+    ):
         """Test list_node_interfaces returns empty list when shell command fails"""
-        with patch('krkn_ai.utils.cluster_manager.run_shell', return_value=("", 1)):
+        with patch("krkn_ai.utils.cluster_manager.run_shell", return_value=("", 1)):
             interfaces = cluster_manager.list_node_interfaces("test-node")
-        
-        assert interfaces == []
 
+        assert interfaces == []

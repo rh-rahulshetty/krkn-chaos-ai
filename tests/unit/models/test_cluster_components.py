@@ -1,7 +1,6 @@
 """
 ClusterComponents model tests
 """
-import pytest
 
 from krkn_ai.models.cluster_components import (
     ClusterComponents,
@@ -24,7 +23,7 @@ class TestClusterComponents:
         cluster_empty = ClusterComponents()
         assert cluster_empty.namespaces == []
         assert cluster_empty.nodes == []
-        
+
         # Test cluster with data
         namespace = Namespace(
             name="test-namespace",
@@ -32,23 +31,23 @@ class TestClusterComponents:
                 Pod(
                     name="test-pod",
                     labels={"app": "test"},
-                    containers=[Container(name="test-container")]
+                    containers=[Container(name="test-container")],
                 )
             ],
             services=[
                 Service(
                     name="test-service",
                     labels={"app": "test"},
-                    ports=[ServicePort(port=8080, target_port=8080)]
+                    ports=[ServicePort(port=8080, target_port=8080)],
                 )
             ],
             pvcs=[
                 PVC(
                     name="test-pvc",
                     labels={"storage": "fast"},
-                    current_usage_percentage=75.5
+                    current_usage_percentage=75.5,
                 )
-            ]
+            ],
         )
         node = Node(
             name="test-node",
@@ -56,12 +55,9 @@ class TestClusterComponents:
             free_cpu=4.0,
             free_mem=8.0,
             interfaces=["eth0", "eth1"],
-            taints=["node-role.kubernetes.io/master"]
+            taints=["node-role.kubernetes.io/master"],
         )
-        cluster = ClusterComponents(
-            namespaces=[namespace],
-            nodes=[node]
-        )
+        cluster = ClusterComponents(namespaces=[namespace], nodes=[node])
         assert len(cluster.namespaces) == 1
         assert len(cluster.nodes) == 1
         assert cluster.namespaces[0].name == "test-namespace"
@@ -79,13 +75,13 @@ class TestNamespace:
         assert namespace_min.pods == []
         assert namespace_min.services == []
         assert namespace_min.pvcs == []
-        
+
         # Test with all fields
         namespace = Namespace(
             name="test-ns",
             pods=[Pod(name="pod1"), Pod(name="pod2")],
             services=[Service(name="svc1")],
-            pvcs=[PVC(name="pvc1")]
+            pvcs=[PVC(name="pvc1")],
         )
         assert len(namespace.pods) == 2
         assert len(namespace.services) == 1
@@ -102,15 +98,12 @@ class TestPod:
         assert pod_min.name == "test-pod"
         assert pod_min.labels == {}
         assert pod_min.containers == []
-        
+
         # Test with labels and containers
         pod = Pod(
             name="test-pod",
             labels={"app": "web", "version": "1.0"},
-            containers=[
-                Container(name="container1"),
-                Container(name="container2")
-            ]
+            containers=[Container(name="container1"), Container(name="container2")],
         )
         assert pod.labels["app"] == "web"
         assert len(pod.containers) == 2
@@ -126,14 +119,14 @@ class TestService:
         assert service_min.name == "test-service"
         assert service_min.labels == {}
         assert service_min.ports == []
-        
+
         # Test with ports
         service = Service(
             name="test-service",
             ports=[
                 ServicePort(port=80, target_port=8080, protocol="TCP"),
-                ServicePort(port=443, target_port="8443", protocol="TCP")
-            ]
+                ServicePort(port=443, target_port="8443", protocol="TCP"),
+            ],
         )
         assert len(service.ports) == 2
         assert service.ports[0].port == 80
@@ -154,7 +147,7 @@ class TestNode:
         assert node_min.free_mem == 0
         assert node_min.interfaces == []
         assert node_min.taints == []
-        
+
         # Test with all fields
         node = Node(
             name="test-node",
@@ -162,7 +155,7 @@ class TestNode:
             free_cpu=4.0,
             free_mem=8.0,
             interfaces=["eth0", "eth1"],
-            taints=["node-role.kubernetes.io/master:NoSchedule"]
+            taints=["node-role.kubernetes.io/master:NoSchedule"],
         )
         assert node.free_cpu == 4.0
         assert node.free_mem == 8.0
@@ -180,11 +173,7 @@ class TestPVC:
         assert pvc_min.name == "test-pvc"
         assert pvc_min.labels == {}
         assert pvc_min.current_usage_percentage is None
-        
-        # Test with usage percentage
-        pvc = PVC(
-            name="test-pvc",
-            current_usage_percentage=85.5
-        )
-        assert pvc.current_usage_percentage == 85.5
 
+        # Test with usage percentage
+        pvc = PVC(name="test-pvc", current_usage_percentage=85.5)
+        assert pvc.current_usage_percentage == 85.5

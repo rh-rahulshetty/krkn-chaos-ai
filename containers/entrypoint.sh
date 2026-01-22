@@ -44,16 +44,16 @@ MODE_LOWER=$(echo "$MODE" | tr '[:upper:]' '[:lower:]')
 case "$MODE_LOWER" in
     discover)
         echo "Running in DISCOVER mode..."
-        
+
         # Validate required parameters
         if [ ! -f "$KUBECONFIG" ]; then
             echo "ERROR: KUBECONFIG file not found at: $KUBECONFIG"
             exit 1
         fi
-        
+
         # Build the command
         CMD=(uv run krkn_ai discover --kubeconfig "$KUBECONFIG" --output "$OUTPUT_DIR/krkn-ai.yaml")
-        
+
         # Add optional parameters
         if [ -n "$NAMESPACE" ]; then
             CMD+=(--namespace "$NAMESPACE")
@@ -73,14 +73,14 @@ case "$MODE_LOWER" in
                 CMD+=(-v)
             done
         fi
-        
+
         echo "Executing: ${CMD[*]}"
         "${CMD[@]}"
         ;;
-        
+
     run)
         echo "Running in RUN mode..."
-        
+
         # Validate required parameters
         if [ ! -f "$CONFIG_FILE" ]; then
             echo "ERROR: CONFIG_FILE not found at: $CONFIG_FILE"
@@ -100,11 +100,11 @@ case "$MODE_LOWER" in
         if [ -n "$FORMAT" ]; then
             CMD="$CMD --format $FORMAT"
         fi
-        
+
         if [ -n "$RUNNER_TYPE" ]; then
             CMD="$CMD --runner-type $RUNNER_TYPE"
         fi
-        
+
         # Add extra parameters (comma-separated key=value pairs)
         if [ -n "$EXTRA_PARAMS" ]; then
             IFS=',' read -ra PARAMS <<< "$EXTRA_PARAMS"
@@ -112,18 +112,18 @@ case "$MODE_LOWER" in
                 CMD="$CMD --param $param"
             done
         fi
-        
+
         # Add verbosity flags
         if [ "$VERBOSE" -ge 1 ]; then
             for ((i=0; i<$VERBOSE; i++)); do
                 CMD="$CMD -v"
             done
         fi
-        
+
         echo "Executing: $CMD"
         eval $CMD
         ;;
-        
+
     *)
         echo "ERROR: Invalid MODE '$MODE'. Must be 'discover' or 'run'"
         usage
@@ -134,4 +134,3 @@ esac
 chmod -R 777 "$OUTPUT_DIR" 2>/dev/null || echo "Warning: Could not set permissions on $OUTPUT_DIR"
 
 echo "Execution completed!"
-

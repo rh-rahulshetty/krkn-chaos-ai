@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.scenario.base import BaseParameter
 
+
 class DummyEndParameter(BaseParameter):
     krknhub_name: str = "END"
     krknctl_name: str = "end"
@@ -50,30 +51,36 @@ class ExpRecoveryTimeParameter(BaseParameter):
     krknctl_name: str = "expected-recovery-time"
     value: int = 60
 
+
 class DurationParameter(BaseParameter):
     krknhub_name: str = "DURATION"
     krknctl_name: str = "chaos-duration"
     value: int = 60
 
+
 class PodSelectorParameter(BaseParameter):
     krknhub_name: str = "POD_SELECTOR"
     krknctl_name: str = "pod-selector"
-    value: str = "" # Format: {app: foo}
+    value: str = ""  # Format: {app: foo}
+
 
 class BlockTrafficType(BaseParameter):
     krknhub_name: str = "BLOCK_TRAFFIC_TYPE"
     krknctl_name: str = "block-traffic-type"
-    value: str = "[Ingress, Egress]" # "[Ingress, Egress]", "[Ingress]", "[Egress]"
+    value: str = "[Ingress, Egress]"  # "[Ingress, Egress]", "[Ingress]", "[Egress]"
+
 
 class LabelSelectorParameter(BaseParameter):
     krknhub_name: str = "LABEL_SELECTOR"
     krknctl_name: str = "label-selector"
-    value: str = "" # Example Value: k8s-app=etcd
+    value: str = ""  # Example Value: k8s-app=etcd
+
 
 class ContainerNameParameter(BaseParameter):
     krknhub_name: str = "CONTAINER_NAME"
     krknctl_name: str = "container-name"
     value: str = ""  # Example Value: etcd
+
 
 class ActionParameter(BaseParameter):
     krknhub_name: str = "ACTION"
@@ -81,20 +88,24 @@ class ActionParameter(BaseParameter):
     value: str = "1"
     # possible_values = ["1", "9"]
 
+
 class TotalChaosDurationParameter(BaseParameter):
     krknhub_name: str = "TOTAL_CHAOS_DURATION"
     krknctl_name: str = "chaos-duration"
     value: int = 60
+
 
 class NodeCPUCoreParameter(BaseParameter):
     krknhub_name: str = "NODE_CPU_CORE"
     krknctl_name: str = "cores"
     value: float = 2
 
+
 class NodeCPUPercentageParameter(BaseParameter):
-    '''
+    """
     CPU usage percentage of the node cpu hog scenario between 20 and 100.
-    '''
+    """
+
     krknhub_name: str = "NODE_CPU_PERCENTAGE"
     krknctl_name: str = "cpu-percentage"
     value: int = 50
@@ -108,10 +119,12 @@ class NodeCPUPercentageParameter(BaseParameter):
         self.value = max(self.value, 20)
         self.value = min(self.value, 100)
 
+
 class NodeMemoryPercentageParameter(BaseParameter):
-    '''
+    """
     Memory usage percentage of the node memory hog scenario between 20 and 100.
-    '''
+    """
+
     krknhub_name: str = "MEMORY_CONSUMPTION_PERCENTAGE"
     krknctl_name: str = "memory-consumption"
     value: int = 50
@@ -139,15 +152,16 @@ class NumberOfWorkersParameter(BaseParameter):
 
 
 class NodeSelectorParameter(BaseParameter):
-    '''
+    """
     CPU-Hog:
-    Node selector where the scenario containers will be scheduled in the format “=<selector>”. 
-    NOTE: Will be instantiated a container per each node selected with the same scenario options. 
-    If left empty a random node will be selected	
+    Node selector where the scenario containers will be scheduled in the format “=<selector>”.
+    NOTE: Will be instantiated a container per each node selected with the same scenario options.
+    If left empty a random node will be selected
 
     Memory-Hog:
-    defines the node selector for choosing target nodes. If not specified, one schedulable node in the cluster will be chosen at random. If multiple nodes match the selector, all of them will be subjected to stress. If number-of-nodes is specified, that many nodes will be randomly selected from those identified by the selector.	
-    '''
+    defines the node selector for choosing target nodes. If not specified, one schedulable node in the cluster will be chosen at random. If multiple nodes match the selector, all of them will be subjected to stress. If number-of-nodes is specified, that many nodes will be randomly selected from those identified by the selector.
+    """
+
     krknhub_name: str = "NODE_SELECTOR"
     krknctl_name: str = "node-selector"
     value: str = ""
@@ -156,7 +170,7 @@ class NodeSelectorParameter(BaseParameter):
 class TaintParameter(BaseParameter):
     krknhub_name: str = "TAINTS"
     krknctl_name: str = "taints"
-    value: str = '[]'
+    value: str = "[]"
 
 
 class NumberOfNodesParameter(BaseParameter):
@@ -170,6 +184,7 @@ class HogScenarioImageParameter(BaseParameter):
     krknctl_name: str = "image"
     value: str = "quay.io/krkn-chaos/krkn-hog"
 
+
 class ObjectTypeParameter(BaseParameter):
     krknhub_name: str = "OBJECT_TYPE"
     krknctl_name: str = "object-type"
@@ -177,11 +192,12 @@ class ObjectTypeParameter(BaseParameter):
 
     def mutate(self):
         self.value = rng.choice(["pod", "node"])
- 
+
+
 class ActionTimeParameter(BaseParameter):
     krknhub_name: str = "ACTION"
     krknctl_name: str = "action"
-    value: str = "skew_date" # Available Types: skew_date, skew_time
+    value: str = "skew_date"  # Available Types: skew_date, skew_time
 
     def mutate(self):
         self.value = rng.choice(["skew_date", "skew_time"])
@@ -195,23 +211,28 @@ class NetworkScenarioTypeParameter(BaseParameter):
     def mutate(self):
         self.value = rng.choice(["ingress", "egress"])
 
+
 class NetworkScenarioImageParameter(BaseParameter):
     krknhub_name: str = "IMAGE"
     krknctl_name: str = "image"
     value: str = "quay.io/krkn-chaos/krkn:tools"
 
+
 class StandardDurationParameter(BaseParameter):
     """
     Standard duration parameter with krknctl_name="duration" and krknhub_name="DURATION".
     """
+
     krknhub_name: str = "DURATION"
     krknctl_name: str = "duration"
     value: int = 120
+
 
 class NetworkScenarioLabelSelectorParameter(BaseParameter):
     krknhub_name: str = "LABEL_SELECTOR"
     krknctl_name: str = "label-selector"
     value: str = ""
+
 
 class NetworkScenarioExecutionParameter(BaseParameter):
     krknhub_name: str = "EXECUTION"
@@ -221,10 +242,12 @@ class NetworkScenarioExecutionParameter(BaseParameter):
     def mutate(self):
         self.value = rng.choice(["serial", "parallel"])
 
+
 class NetworkScenarioNodeNameParameter(BaseParameter):
     krknhub_name: str = "NODE_NAME"
     krknctl_name: str = "node-name"
     value: str = ""
+
 
 class NetworkScenarioInterfacesParameter(BaseParameter):
     # TODO: Understand the format and values of the interfaces parameter
@@ -232,10 +255,11 @@ class NetworkScenarioInterfacesParameter(BaseParameter):
     krknctl_name: str = "interfaces"
     value: str = "[]"
 
+
 class NetworkParamData(BaseModel):
-    latency: int = 50 # ms
+    latency: int = 50  # ms
     loss: float = 0.02  # %
-    bandwidth: int = 100 # mbit
+    bandwidth: int = 100  # mbit
 
 
 class NetworkScenarioNetworkParamsParameter(BaseParameter):
@@ -249,7 +273,12 @@ class NetworkScenarioNetworkParamsParameter(BaseParameter):
         self.value.bandwidth = rng.randint(100, 1000)
 
     def get_value(self):
-        return "{" + f"latency: {self.value.latency}ms,loss: {self.value.loss},bandwidth: {self.value.bandwidth}mbit" + "}"
+        return (
+            "{"
+            + f"latency: {self.value.latency}ms,loss: {self.value.loss},bandwidth: {self.value.bandwidth}mbit"
+            + "}"
+        )
+
 
 class NetworkScenarioEgressParamsParameter(BaseParameter):
     krknhub_name: str = "EGRESS"
@@ -262,7 +291,12 @@ class NetworkScenarioEgressParamsParameter(BaseParameter):
         self.value.bandwidth = rng.randint(100, 1000)
 
     def get_value(self):
-        return "{" + f"latency: {self.value.latency}ms,loss: {self.value.loss},bandwidth: {self.value.bandwidth}mbit" + "}"
+        return (
+            "{"
+            + f"latency: {self.value.latency}ms,loss: {self.value.loss},bandwidth: {self.value.bandwidth}mbit"
+            + "}"
+        )
+
 
 class NetworkScenarioTargetNodeInterfaceParameter(BaseParameter):
     # TODO: Understand the format and values of the target-node-interface parameter
@@ -270,15 +304,18 @@ class NetworkScenarioTargetNodeInterfaceParameter(BaseParameter):
     krknctl_name: str = "target-node-interface"
     value: str = "{}"
 
+
 class DNSOutageDurationParameter(BaseParameter):
     krknhub_name: str = "TEST_DURATION"
     krknctl_name: str = "chaos-duration"
     value: int = 60
 
+
 class DNSOutageProtocolParameter(BaseParameter):
     krknhub_name: str = "PROTOCOL"
     krknctl_name: str = "protocol"
     value: str = "tcp,udp"
+
 
 class DNSPortParameter(BaseParameter):
     krknhub_name: str = "PORTS"
@@ -291,21 +328,25 @@ class PodNameParameter(BaseParameter):
     krknctl_name: str = "pod-name"
     value: str = ""
 
+
 class IngressParameter(BaseParameter):
     krknhub_name: str = "INGRESS"
     krknctl_name: str = "ingress"
     value: str = "false"
+
 
 class EgressParameter(BaseParameter):
     krknhub_name: str = "EGRESS"
     krknctl_name: str = "egress"
     value: str = "true"
 
+
 # PVC Scenario Parameters
 class PVCNameParameter(BaseParameter):
     krknhub_name: str = "PVC_NAME"
     krknctl_name: str = "pvc-name"
     value: str = ""
+
 
 class FillPercentageParameter(BaseParameter):
     krknhub_name: str = "FILL_PERCENTAGE"
@@ -322,9 +363,10 @@ class FillPercentageParameter(BaseParameter):
         min_value_int = 1
         if min_value is not None:
             min_value_int = min(math.ceil(min_value) + 1, 99)
-        
+
         # Random value between min_value_int and 99
         self.value = rng.randint(min_value_int, 99)
+
 
 # SYN Flood Scenario Parameters
 class SynFloodPacketSizeParameter(BaseParameter):
@@ -332,45 +374,54 @@ class SynFloodPacketSizeParameter(BaseParameter):
     krknctl_name: str = "packet-size"
     value: int = 120
 
+
 class SynFloodWindowSizeParameter(BaseParameter):
     krknhub_name: str = "WINDOW_SIZE"
     krknctl_name: str = "window-size"
     value: int = 64
+
 
 class SynFloodTargetServiceParameter(BaseParameter):
     krknhub_name: str = "TARGET_SERVICE"
     krknctl_name: str = "target-service"
     value: str = ""
 
+
 class SynFloodTargetPortParameter(BaseParameter):
     krknhub_name: str = "TARGET_PORT"
     krknctl_name: str = "target-port"
     value: int = 80
+
 
 class SynFloodTargetServiceLabelParameter(BaseParameter):
     krknhub_name: str = "TARGET_SERVICE_LABEL"
     krknctl_name: str = "target-service-label"
     value: str = ""
 
+
 class SynFloodNumberOfPodsParameter(BaseParameter):
     krknhub_name: str = "NUMBER_OF_PODS"
     krknctl_name: str = "number-of-pods"
     value: int = 2
+
 
 class SynFloodImageParameter(BaseParameter):
     krknhub_name: str = "IMAGE"
     krknctl_name: str = "image"
     value: str = "quay.io/krkn-chaos/krkn-syn-flood:latest"
 
+
 class SynFloodNodeSelectorsParameter(BaseParameter):
     krknhub_name: str = "NODE_SELECTORS"
     krknctl_name: str = "node-selectors"
     value: str = ""
 
+
 class IOBlockSizeParameter(BaseParameter):
-    '''
+    """
     Size of each write in bytes. Size can be from 1 byte to 4 Megabytes (allowed suffix are b,k,m)
-    '''
+    """
+
     krknhub_name: str = "IO_BLOCK_SIZE"
     krknctl_name: str = "io-block-size"
     value: int = 1048576  # 1MB in bytes (1024 * 1024)
@@ -397,9 +448,10 @@ class IOBlockSizeParameter(BaseParameter):
 
 
 class IOWorkersParameter(BaseParameter):
-    '''
+    """
     Number of stressor instances
-    '''
+    """
+
     krknhub_name: str = "IO_WORKERS"
     krknctl_name: str = "io-workers"
     value: int = 5
@@ -409,10 +461,11 @@ class IOWorkersParameter(BaseParameter):
 
 
 class IOWriteBytesParameter(BaseParameter):
-    '''
-    writes N bytes for each hdd process. The size can be expressed as % of free space on the file system 
+    """
+    writes N bytes for each hdd process. The size can be expressed as % of free space on the file system
     or in units of Bytes, KBytes, MBytes and GBytes using the suffix b, k, m or g
-    '''
+    """
+
     krknhub_name: str = "IO_WRITE_BYTES"
     krknctl_name: str = "io-write-bytes"
     value: int = 10  # Percentage of free space (1-100)
@@ -434,23 +487,27 @@ class IOWriteBytesParameter(BaseParameter):
 
 
 class NodeMountPathParameter(BaseParameter):
-    '''
-    the path in the node that will be mounted in the pod and where the io hog will be executed. 
+    """
+    the path in the node that will be mounted in the pod and where the io hog will be executed.
     NOTE: be sure that kubelet has the rights to write in that node path
-    '''
+    """
+
     krknhub_name: str = "NODE_MOUNT_PATH"
     krknctl_name: str = "node-mount-path"
     value: str = "/root"
+
 
 class VMTimeoutParameter(BaseParameter):
     krknhub_name: str = "TIMEOUT"
     krknctl_name: str = "timeout"
     value: int = 60
 
+
 class VMNameParameter(BaseParameter):
     krknhub_name: str = "VM_NAME"
     krknctl_name: str = "vm-name"
     value: str = ""
+
 
 class KillCountParameter(BaseParameter):
     krknhub_name: str = "KILL_COUNT"

@@ -7,7 +7,7 @@
 #
 # Description:
 # This script sets up a sample robot-shop micro-service based app on K8s cluster.
-# 
+#
 #
 # Usage:
 # ./setup-demo-microservice.sh
@@ -15,7 +15,7 @@
 # Pre-requisite:
 # - kubectl and oc client
 # - User should be already logged into cluster before running the script
-# 
+#
 #******************************************************************************
 
 # Define variables
@@ -66,4 +66,3 @@ fi
 cd $helm_chart
 helm upgrade -i $chart_name --set openshift="$is_openshift" --namespace "$namespace" .
 echo "Installed helm chart '$chart_name' in namespace '$namespace'"
-

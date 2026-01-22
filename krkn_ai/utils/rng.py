@@ -2,7 +2,8 @@ import numpy as np
 from typing import List, Any
 from typing import TypeVar, Sequence
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 class RNG:
     def __init__(self):
@@ -22,8 +23,9 @@ class RNG:
         if low == high:
             return low
         return self.rng.integers(low, high)
-    
+
     def uniform(self, low: float, high: float):
         return self.rng.uniform(low, high)
+
 
 rng = RNG()

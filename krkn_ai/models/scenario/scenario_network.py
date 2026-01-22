@@ -1,8 +1,18 @@
-from collections import defaultdict
 from krkn_ai.models.custom_errors import ScenarioParameterInitError
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.scenario.base import Scenario
-from krkn_ai.models.scenario.parameters import *
+from krkn_ai.models.scenario.parameters import (
+    NetworkScenarioEgressParamsParameter,
+    NetworkScenarioExecutionParameter,
+    NetworkScenarioImageParameter,
+    NetworkScenarioInterfacesParameter,
+    NetworkScenarioLabelSelectorParameter,
+    NetworkScenarioNetworkParamsParameter,
+    NetworkScenarioNodeNameParameter,
+    NetworkScenarioTargetNodeInterfaceParameter,
+    NetworkScenarioTypeParameter,
+    StandardDurationParameter,
+)
 
 
 class NetworkScenario(Scenario):
@@ -13,13 +23,23 @@ class NetworkScenario(Scenario):
     traffic_type: NetworkScenarioTypeParameter = NetworkScenarioTypeParameter()
     image: NetworkScenarioImageParameter = NetworkScenarioImageParameter()
     duration: StandardDurationParameter = StandardDurationParameter()
-    label_selector: NetworkScenarioLabelSelectorParameter = NetworkScenarioLabelSelectorParameter()
+    label_selector: NetworkScenarioLabelSelectorParameter = (
+        NetworkScenarioLabelSelectorParameter()
+    )
     execution: NetworkScenarioExecutionParameter = NetworkScenarioExecutionParameter()
     node_name: NetworkScenarioNodeNameParameter = NetworkScenarioNodeNameParameter()
-    interfaces: NetworkScenarioInterfacesParameter = NetworkScenarioInterfacesParameter()
-    network_params: NetworkScenarioNetworkParamsParameter = NetworkScenarioNetworkParamsParameter()
-    egress_params: NetworkScenarioEgressParamsParameter = NetworkScenarioEgressParamsParameter()
-    target_node_interface: NetworkScenarioTargetNodeInterfaceParameter = NetworkScenarioTargetNodeInterfaceParameter()
+    interfaces: NetworkScenarioInterfacesParameter = (
+        NetworkScenarioInterfacesParameter()
+    )
+    network_params: NetworkScenarioNetworkParamsParameter = (
+        NetworkScenarioNetworkParamsParameter()
+    )
+    egress_params: NetworkScenarioEgressParamsParameter = (
+        NetworkScenarioEgressParamsParameter()
+    )
+    target_node_interface: NetworkScenarioTargetNodeInterfaceParameter = (
+        NetworkScenarioTargetNodeInterfaceParameter()
+    )
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -42,10 +62,14 @@ class NetworkScenario(Scenario):
 
     def mutate(self):
         # Get nodes with interfaces
-        nodes = [node for node in self._cluster_components.nodes if len(node.interfaces) > 0]
+        nodes = [
+            node for node in self._cluster_components.nodes if len(node.interfaces) > 0
+        ]
 
         if len(nodes) == 0:
-            raise ScenarioParameterInitError("No nodes found with interfaces in cluster components")
+            raise ScenarioParameterInitError(
+                "No nodes found with interfaces in cluster components"
+            )
 
         # TODO: Add support for ingress traffic type
         self.traffic_type.value = "egress"
@@ -59,4 +83,6 @@ class NetworkScenario(Scenario):
         node = rng.choice(nodes)
         self.node_name.value = node.name
         self.interfaces.value = f"[{rng.choice(node.interfaces)}]"
-        self.target_node_interface.value = "{" + f"{node.name}: [{rng.choice(node.interfaces)}]" + " }"
+        self.target_node_interface.value = (
+            "{" + f"{node.name}: [{rng.choice(node.interfaces)}]" + " }"
+        )

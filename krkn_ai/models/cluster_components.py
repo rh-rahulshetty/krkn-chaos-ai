@@ -1,19 +1,22 @@
-from enum import Enum
 from typing import Dict, List, Optional, Union
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel
+
 
 class Container(BaseModel):
     name: str
+
 
 class Pod(BaseModel):
     name: str
     labels: Dict[str, str] = {}
     containers: List[Container] = []
 
+
 class PVC(BaseModel):
     name: str
     labels: Dict[str, str] = {}
     current_usage_percentage: Optional[float] = None
+
 
 class ServicePort(BaseModel):
     port: int
@@ -30,12 +33,14 @@ class Service(BaseModel):
 class VMI(BaseModel):
     name: str
 
+
 class Namespace(BaseModel):
     name: str
     pods: List[Pod] = []
     services: List[Service] = []
     pvcs: List[PVC] = []
     vmis: List[VMI] = []
+
 
 class Node(BaseModel):
     name: str

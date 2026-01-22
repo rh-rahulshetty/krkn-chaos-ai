@@ -1,7 +1,13 @@
 from krkn_ai.models.custom_errors import ScenarioParameterInitError
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.scenario.base import Scenario
-from krkn_ai.models.scenario.parameters import *
+from krkn_ai.models.scenario.parameters import (
+    ActionTimeParameter,
+    ContainerNameParameter,
+    LabelSelectorParameter,
+    NamespaceParameter,
+    ObjectTypeParameter,
+)
 
 
 class TimeScenario(Scenario):
@@ -31,10 +37,13 @@ class TimeScenario(Scenario):
 
     def mutate(self):
         # Pre-check if data is available for scenario
-        namespace = rng.choice([
-            namespace for namespace in self._cluster_components.namespaces 
-            if len(namespace.pods) > 0
-        ])
+        namespace = rng.choice(
+            [
+                namespace
+                for namespace in self._cluster_components.namespaces
+                if len(namespace.pods) > 0
+            ]
+        )
         all_pod_labels = set()
         for p in namespace.pods:
             for label, value in p.labels.items():
@@ -46,7 +55,9 @@ class TimeScenario(Scenario):
                 all_node_labels.add(f"{label}={value}")
 
         if len(all_pod_labels) == 0 and len(all_node_labels) == 0:
-            raise ScenarioParameterInitError("No labels found for pods and nodes in cluster components")
+            raise ScenarioParameterInitError(
+                "No labels found for pods and nodes in cluster components"
+            )
 
         if len(all_node_labels) == 0:
             self.object_type.value = "pod"
@@ -64,4 +75,3 @@ class TimeScenario(Scenario):
         else:
             self.label_selector.value = rng.choice(list(all_node_labels))
             self.namespace.value = ""
-

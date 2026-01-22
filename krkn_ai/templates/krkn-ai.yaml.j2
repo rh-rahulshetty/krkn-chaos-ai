@@ -25,7 +25,7 @@ elastic:
   index: "krkn-ai"  # Index prefix for storing Krkn-AI config and results
 
 
-fitness_function: 
+fitness_function:
   query: 'sum(kube_pod_container_status_restarts_total)'
   type: point
   include_krkn_failure: true

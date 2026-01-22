@@ -1,10 +1,10 @@
 """
 Pytest configuration and shared fixtures
 """
-import os
+
 import tempfile
 import datetime
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 import pytest
 
 from krkn_ai.models.config import (
@@ -13,8 +13,6 @@ from krkn_ai.models.config import (
     FitnessFunctionType,
     ScenarioConfig,
     PodScenarioConfig,
-    HealthCheckConfig,
-    OutputConfig,
     ClusterComponents,
 )
 from krkn_ai.models.cluster_components import (
@@ -24,7 +22,6 @@ from krkn_ai.models.cluster_components import (
     Node,
 )
 from krkn_ai.models.app import CommandRunResult, FitnessResult
-from krkn_ai.models.scenario.base import BaseScenario
 from krkn_ai.models.scenario.scenario_dummy import DummyScenario
 from krkn_ai.algorithm.genetic import GeneticAlgorithm
 
@@ -45,10 +42,10 @@ def mock_cluster_components():
             Pod(
                 name="test-pod",
                 labels={"app": "test"},
-                containers=[Container(name="test-container")]
+                containers=[Container(name="test-container")],
             )
         ],
-        services=[]
+        services=[],
     )
     node = Node(
         name="test-node",
@@ -56,12 +53,9 @@ def mock_cluster_components():
         free_cpu=4.0,
         free_mem=8.0,
         interfaces=["eth0"],
-        taints=[]
+        taints=[],
     )
-    return ClusterComponents(
-        namespaces=[namespace],
-        nodes=[node]
-    )
+    return ClusterComponents(namespaces=[namespace], nodes=[node])
 
 
 @pytest.fixture
@@ -72,13 +66,10 @@ def minimal_config(mock_cluster_components):
         generations=2,
         population_size=4,
         fitness_function=FitnessFunction(
-            query="test_query",
-            type=FitnessFunctionType.point
+            query="test_query", type=FitnessFunctionType.point
         ),
-        scenario=ScenarioConfig(
-            pod_scenarios=PodScenarioConfig(enable=True)
-        ),
-        cluster_components=mock_cluster_components
+        scenario=ScenarioConfig(pod_scenarios=PodScenarioConfig(enable=True)),
+        cluster_components=mock_cluster_components,
     )
 
 
@@ -96,7 +87,7 @@ def mock_krkn_runner():
         start_time=datetime.datetime.now(),
         end_time=datetime.datetime.now(),
         fitness_result=FitnessResult(fitness_score=10.0),
-        health_check_results={}
+        health_check_results={},
     )
     mock_runner.run = Mock(return_value=mock_result)
     return mock_runner
@@ -121,20 +112,20 @@ def mock_command_run_result(mock_scenario):
         start_time=datetime.datetime.now(),
         end_time=datetime.datetime.now(),
         fitness_result=FitnessResult(fitness_score=10.0),
-        health_check_results={}
+        health_check_results={},
     )
 
 
 @pytest.fixture
 def genetic_algorithm(minimal_config, temp_output_dir):
     """Create a GeneticAlgorithm instance for testing"""
-    with patch('krkn_ai.algorithm.genetic.KrknRunner'):
-        with patch('krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios') as mock_gen:
+    with patch("krkn_ai.algorithm.genetic.KrknRunner"):
+        with patch(
+            "krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios"
+        ) as mock_gen:
             mock_gen.return_value = [("pod_scenarios", Mock)]
             ga = GeneticAlgorithm(
-                config=minimal_config,
-                output_dir=temp_output_dir,
-                format="yaml"
+                config=minimal_config, output_dir=temp_output_dir, format="yaml"
             )
             return ga
 
@@ -142,17 +133,16 @@ def genetic_algorithm(minimal_config, temp_output_dir):
 @pytest.fixture
 def genetic_algorithm_with_mock_runner(minimal_config, temp_output_dir):
     """Create a GeneticAlgorithm instance with mock runner for testing"""
-    with patch('krkn_ai.algorithm.genetic.KrknRunner') as mock_runner_class:
+    with patch("krkn_ai.algorithm.genetic.KrknRunner") as mock_runner_class:
         mock_runner = Mock()
         mock_runner_class.return_value = mock_runner
-        
-        with patch('krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios') as mock_gen:
+
+        with patch(
+            "krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios"
+        ) as mock_gen:
             mock_gen.return_value = [("pod_scenarios", Mock)]
             ga = GeneticAlgorithm(
-                config=minimal_config,
-                output_dir=temp_output_dir,
-                format="yaml"
+                config=minimal_config, output_dir=temp_output_dir, format="yaml"
             )
             ga.krkn_client = mock_runner
             return ga
-

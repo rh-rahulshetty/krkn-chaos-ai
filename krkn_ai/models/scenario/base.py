@@ -26,8 +26,7 @@ class BaseScenario(BaseModel):
 
 
 class Scenario(BaseScenario):
-
-    # Private attribute doesn't appear when serializing, but lets us keep referene 
+    # Private attribute doesn't appear when serializing, but lets us keep referene
     _cluster_components: ClusterComponents = PrivateAttr()
 
     def __init__(self, **data):
@@ -60,7 +59,7 @@ class CompositeDependency(Enum):
 class CompositeScenario(BaseScenario):
     name: str = "composite-scenario"
     # No associated krknctl and krknhub images as these are custom composite scenarios.
-    krknctl_name: str = ""  
+    krknctl_name: str = ""
     krknhub_image: str = ""
     scenario_a: BaseScenario
     scenario_b: BaseScenario

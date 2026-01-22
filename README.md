@@ -17,7 +17,7 @@ An intelligent chaos engineering framework that uses genetic algorithms to optim
 - **Prometheus Integration**: Metrics-driven fitness evaluation
 - **Configurable Fitness Functions**: Point-based and range-based fitness evaluation
 - **Population Evolution**: Maintains and evolves populations of chaos scenarios across generations
- 
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -118,7 +118,7 @@ output:
   log_name_fmt: "scenario_%s.log"
 
 # Fitness function configuration
-fitness_function: 
+fitness_function:
   query: 'sum(kube_pod_container_status_restarts_total{namespace="robot-shop"})'
   type: point  # or 'range'
   include_krkn_failure: true
@@ -286,4 +286,3 @@ The current version of Krkn-AI leverages an [evolutionary algorithm](https://en.
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
