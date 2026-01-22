@@ -15,6 +15,7 @@ class NodeCPUHogScenario(Scenario):
     chaos_duration: TotalChaosDurationParameter = TotalChaosDurationParameter()
     # node_cpu_core: NodeCPUCoreParameter = NodeCPUCoreParameter()
     node_cpu_percentage: NodeCPUPercentageParameter = NodeCPUPercentageParameter()
+    namespace: NamespaceParameter = NamespaceParameter(value="default")
     node_selector: NodeSelectorParameter = NodeSelectorParameter()
     taint: TaintParameter = TaintParameter()
     number_of_nodes: NumberOfNodesParameter = NumberOfNodesParameter()
@@ -30,6 +31,7 @@ class NodeCPUHogScenario(Scenario):
             self.chaos_duration,
             # self.node_cpu_core,
             self.node_cpu_percentage,
+            self.namespace,
             self.node_selector,
             self.taint,
             self.number_of_nodes,

@@ -17,6 +17,7 @@ class NodeMemoryHogScenario(Scenario):
     chaos_duration: TotalChaosDurationParameter = TotalChaosDurationParameter()
     node_memory_percentage: NodeMemoryPercentageParameter = NodeMemoryPercentageParameter()
     number_of_workers: NumberOfWorkersParameter = NumberOfWorkersParameter()
+    namespace: NamespaceParameter = NamespaceParameter(value="default")
     node_selector: NodeSelectorParameter = NodeSelectorParameter()
     taint: TaintParameter = TaintParameter()
     number_of_nodes: NumberOfNodesParameter = NumberOfNodesParameter()
@@ -32,6 +33,7 @@ class NodeMemoryHogScenario(Scenario):
             self.chaos_duration,
             self.node_memory_percentage,
             self.number_of_workers,
+            self.namespace,
             self.node_selector,
             self.taint,
             self.number_of_nodes,

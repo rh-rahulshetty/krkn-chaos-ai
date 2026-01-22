@@ -287,6 +287,8 @@ class ClusterManager:
                 usage_mem = item["usage"]["memory"]    # e.g. "1024Mi"
                 return self.parse_cpu(usage_cpu), self.parse_memory(usage_mem)
 
+        raise ValueError(f"Metrics not found for node: {node}")
+
     @staticmethod
     def parse_cpu(cpu_str: str):
         """

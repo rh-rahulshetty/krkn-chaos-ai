@@ -47,7 +47,7 @@ class HealthCheckWatcher:
             try:
                 resp = requests.get(health_check.url, timeout=health_check.timeout)
                 status = resp.status_code
-                success = (status == 200)
+                success = (status == health_check.status_code)
                 error = None
             except Exception as e:
                 status = -1

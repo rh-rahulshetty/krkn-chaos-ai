@@ -170,6 +170,14 @@ class HealthCheckResult(BaseModel):
     error: Optional[str] = None # Error message if the status code is not as expected
 
 
+class AdaptiveMutation(BaseModel):
+    enable: bool = False
+    min: float = 0.05
+    max: float = 0.9
+    threshold: float = 0.1
+    generations: int = 5
+
+
 class ConfigFile(BaseModel):
     kubeconfig_file_path: str  # Path to kubeconfig
     parameters: Dict[str, str] = {}
@@ -198,3 +206,5 @@ class ConfigFile(BaseModel):
     elastic: Optional[ElasticConfig] = Field(default_factory=ElasticConfig)  # Elasticsearch configuration
 
     cluster_components: ClusterComponents
+
+    adaptive_mutation: AdaptiveMutation = AdaptiveMutation()

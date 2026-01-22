@@ -45,6 +45,8 @@ class GeneticAlgorithm:
         self.population = []
         self.format = format
 
+        self.stagnant_generations = 0
+
         self.valid_scenarios = ScenarioFactory.generate_valid_scenarios(self.config)  # List valid scenarios
         self.seen_population: Dict[BaseScenario, CommandRunResult] = {}  # Map between scenario and its result
         self.best_of_generation = []
@@ -124,6 +126,8 @@ class GeneticAlgorithm:
             self.best_of_generation.append(fitness_scores[0])
             logger.info("Best Fitness: %f", fitness_scores[0].fitness_result.fitness_score)
 
+            self.adapt_mutation_rate()
+
             # Repopulate off-springs
             self.population = []
             for _ in range(self.config.population_size // 2):
@@ -158,6 +162,46 @@ class GeneticAlgorithm:
                 self.population.extend(self.create_population(self.config.population_injection_size))
 
             cur_generation += 1
+
+    def adapt_mutation_rate(self):
+        cfg = self.config.adaptive_mutation
+
+        if not cfg.enable:
+            return
+
+        if len(self.best_of_generation) < 2:
+            return
+
+        prev = self.best_of_generation[-2].fitness_result.fitness_score
+        curr = self.best_of_generation[-1].fitness_result.fitness_score
+
+        improvement = curr - prev
+
+        if improvement < cfg.threshold:
+            self.stagnant_generations += 1
+        else:
+            self.stagnant_generations = 0
+
+        if self.stagnant_generations < cfg.generations:
+            return
+
+        # adaptive update
+        if improvement < cfg.threshold:
+            self.config.scenario_mutation_rate *= 1.2
+        else:
+            self.config.scenario_mutation_rate *= 0.9
+
+        self.config.scenario_mutation_rate = max(
+            cfg.min,
+            min(self.config.scenario_mutation_rate, cfg.max)
+        )
+
+        logger.info(
+            "Adaptive mutation triggered | mutation_rate=%.4f",
+            self.config.scenario_mutation_rate
+        )
+
+        self.stagnant_generations = 0
 
     def create_population(self, population_size) -> List[BaseScenario]:
         """Generate random population for algorithm"""
