@@ -1,6 +1,7 @@
 """
 ConfigFile model tests
 """
+
 import pytest
 from pydantic import ValidationError
 
@@ -10,7 +11,6 @@ from krkn_ai.models.config import (
     FitnessFunctionType,
     FitnessFunctionItem,
     ScenarioConfig,
-    PodScenarioConfig,
     HealthCheckConfig,
     HealthCheckApplicationConfig,
     OutputConfig,
@@ -25,12 +25,12 @@ class TestConfigFile:
     def test_config_file_creation(self):
         """Test ConfigFile with minimal required fields and with all fields"""
         cluster = ClusterComponents(namespaces=[], nodes=[])
-        
+
         # Test minimal required fields
         config_min = ConfigFile(
             kubeconfig_file_path="/path/to/kubeconfig",
             fitness_function=FitnessFunction(query="test_query"),
-            cluster_components=cluster
+            cluster_components=cluster,
         )
         assert config_min.kubeconfig_file_path == "/path/to/kubeconfig"
         assert config_min.fitness_function.query == "test_query"
@@ -40,16 +40,15 @@ class TestConfigFile:
         assert isinstance(config_min.scenario, ScenarioConfig)
         assert isinstance(config_min.health_checks, HealthCheckConfig)
         assert isinstance(config_min.output, OutputConfig)
-        
+
         # Test with all fields
         cluster_full = ClusterComponents(
-            namespaces=[Namespace(name="test-ns")],
-            nodes=[Node(name="test-node")]
+            namespaces=[Namespace(name="test-ns")], nodes=[Node(name="test-node")]
         )
         fitness = FitnessFunction(
             query="up{job='test'}",
             type=FitnessFunctionType.range,
-            include_krkn_failure=False
+            include_krkn_failure=False,
         )
         scenario_config = ScenarioConfig(**{"pod-scenarios": {"enable": True}})
         config = ConfigFile(
@@ -63,15 +62,12 @@ class TestConfigFile:
                 stop_watcher_on_failure=True,
                 applications=[
                     HealthCheckApplicationConfig(
-                        name="app1",
-                        url="http://localhost:8080/health"
+                        name="app1", url="http://localhost:8080/health"
                     )
-                ]
+                ],
             ),
-            output=OutputConfig(
-                result_name_fmt="gen_%g_scenario_%s.yaml"
-            ),
-            cluster_components=cluster_full
+            output=OutputConfig(result_name_fmt="gen_%g_scenario_%s.yaml"),
+            cluster_components=cluster_full,
         )
         assert config.generations == 50
         assert config.population_size == 20
@@ -90,7 +86,7 @@ class TestConfigFile:
         with pytest.raises(ValidationError):
             ConfigFile(
                 kubeconfig_file_path="/path/to/kubeconfig",
-                fitness_function=FitnessFunction(query="test")
+                fitness_function=FitnessFunction(query="test"),
             )
 
 
@@ -101,26 +97,20 @@ class TestFitnessFunction:
         """Test FitnessFunction with query field and with items list"""
         # Test with query field
         fitness_query = FitnessFunction(
-            query="up{job='test'}",
-            type=FitnessFunctionType.point
+            query="up{job='test'}", type=FitnessFunctionType.point
         )
         assert fitness_query.query == "up{job='test'}"
         assert fitness_query.type == FitnessFunctionType.point
         assert fitness_query.include_krkn_failure is True
         assert fitness_query.items == []
-        
+
         # Test with items list
         fitness_items = FitnessFunction(
             items=[
                 FitnessFunctionItem(
-                    query="cpu_usage",
-                    type=FitnessFunctionType.range,
-                    weight=0.5
+                    query="cpu_usage", type=FitnessFunctionType.range, weight=0.5
                 ),
-                FitnessFunctionItem(
-                    query="memory_usage",
-                    weight=0.3
-                )
+                FitnessFunctionItem(query="memory_usage", weight=0.3),
             ]
         )
         assert len(fitness_items.items) == 2
@@ -166,11 +156,10 @@ class TestHealthCheckConfig:
         config = HealthCheckConfig()
         assert config.stop_watcher_on_failure is False
         assert config.applications == []
-        
+
         # Test HealthCheckApplicationConfig with defaults and custom values
         app = HealthCheckApplicationConfig(
-            name="test-app",
-            url="http://localhost:8080/health"
+            name="test-app", url="http://localhost:8080/health"
         )
         assert app.name == "test-app"
         assert app.url == "http://localhost:8080/health"
@@ -189,13 +178,12 @@ class TestOutputConfig:
         assert config_default.result_name_fmt == "scenario_%s.yaml"
         assert config_default.graph_name_fmt == "scenario_%s.png"
         assert config_default.log_name_fmt == "scenario_%s.log"
-        
+
         # Test custom format strings
         config = OutputConfig(
             result_name_fmt="gen_%g_scenario_%s.yaml",
             graph_name_fmt="gen_%g_scenario_%s.png",
-            log_name_fmt="gen_%g_scenario_%s.log"
+            log_name_fmt="gen_%g_scenario_%s.log",
         )
         assert "%g" in config.result_name_fmt
         assert "%s" in config.result_name_fmt
-

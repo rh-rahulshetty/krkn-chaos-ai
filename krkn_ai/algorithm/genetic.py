@@ -5,11 +5,16 @@ import time
 import uuid
 from typing_extensions import Dict
 import yaml
-from typing import List, Tuple
+from typing import List, Optional
 
 from krkn_ai.models.app import CommandRunResult, KrknRunnerType
 
-from krkn_ai.models.scenario.base import Scenario, BaseScenario, CompositeDependency, CompositeScenario
+from krkn_ai.models.scenario.base import (
+    Scenario,
+    BaseScenario,
+    CompositeDependency,
+    CompositeScenario,
+)
 from krkn_ai.models.scenario.factory import ScenarioFactory
 
 from krkn_ai.models.config import ConfigFile
@@ -26,35 +31,44 @@ logger = get_logger(__name__)
 
 
 class GeneticAlgorithm:
-    '''
+    """
     A class implementing a Genetic Algorithm for scenario optimization.
-    '''
-    def __init__(self, 
-        config: ConfigFile, 
+    """
+
+    def __init__(
+        self,
+        config: ConfigFile,
         output_dir: str,
         format: str,
-        runner_type: KrknRunnerType = None
+        runner_type: KrknRunnerType = None,
     ):
         self.krkn_client = KrknRunner(
-            config,
-            output_dir=output_dir,
-            runner_type=runner_type
+            config, output_dir=output_dir, runner_type=runner_type
         )
         self.output_dir = output_dir
         self.config = config
-        self.population = []
+        self.population: List[BaseScenario] = []
         self.format = format
 
         self.stagnant_generations = 0
 
-        self.valid_scenarios = ScenarioFactory.generate_valid_scenarios(self.config)  # List valid scenarios
-        self.seen_population: Dict[BaseScenario, CommandRunResult] = {}  # Map between scenario and its result
-        self.best_of_generation = []
+        self.valid_scenarios = ScenarioFactory.generate_valid_scenarios(
+            self.config
+        )  # List valid scenarios
+        self.seen_population: Dict[
+            BaseScenario, CommandRunResult
+        ] = {}  # Map between scenario and its result
+        self.best_of_generation: List[BaseScenario] = []
 
-        self.health_check_reporter = HealthCheckReporter(self.output_dir, self.config.output)
+        self.health_check_reporter = HealthCheckReporter(
+            self.output_dir, self.config.output
+        )
         self.generations_reporter = GenerationsReporter(self.output_dir, self.format)
-        self.elastic_client = ElasticSearchClient(self.config.elastic)
-        
+        # Only initialize ElasticSearchClient if elastic config is provided
+        self.elastic_client: Optional[ElasticSearchClient] = None
+        if self.config.elastic is not None:
+            self.elastic_client = ElasticSearchClient(self.config.elastic)
+
         # Generate unique run UUID for this experiment
         self.run_uuid = str(uuid.uuid4())
         logger.info("Krkn-AI run UUID: %s", self.run_uuid)
@@ -64,11 +78,14 @@ class GeneticAlgorithm:
 
         # Population size should be even
         if self.config.population_size % 2 != 0:
-            logger.debug("Population size is odd, making it even for the genetic algorithm.")
+            logger.debug(
+                "Population size is odd, making it even for the genetic algorithm."
+            )
             self.config.population_size += 1
 
         self.save_config()
-        self.elastic_client.index_config(self.config, self.run_uuid)
+        if self.elastic_client is not None:
+            self.elastic_client.index_config(self.config, self.run_uuid)
 
         # For debugging configuration
         # logger.debug("CONFIG")
@@ -88,18 +105,36 @@ class GeneticAlgorithm:
             elapsed_time = time.time() - start_time
 
             # Check generation limit if duration is not set
-            if self.config.duration is None and cur_generation >= self.config.generations:
-                logger.info("Completed %d generations in %s", cur_generation, format_duration(elapsed_time))
+            if (
+                self.config.duration is None
+                and cur_generation >= self.config.generations
+            ):
+                logger.info(
+                    "Completed %d generations in %s",
+                    cur_generation,
+                    format_duration(elapsed_time),
+                )
                 break
 
             # Check if duration has been exceeded
             if self.config.duration is not None:
                 if elapsed_time >= self.config.duration:
-                    logger.info("Duration limit reached (%d seconds). Stopping algorithm.", self.config.duration)
-                    logger.info("Completed %d generations in %s", cur_generation, format_duration(elapsed_time))
+                    logger.info(
+                        "Duration limit reached (%d seconds). Stopping algorithm.",
+                        self.config.duration,
+                    )
+                    logger.info(
+                        "Completed %d generations in %s",
+                        cur_generation,
+                        format_duration(elapsed_time),
+                    )
                     break
                 remaining_time = self.config.duration - elapsed_time
-                logger.debug("Elapsed time: %s, Remaining: %s", format_duration(elapsed_time), format_duration(remaining_time))
+                logger.debug(
+                    "Elapsed time: %s, Remaining: %s",
+                    format_duration(elapsed_time),
+                    format_duration(remaining_time),
+                )
 
             if len(self.population) == 0:
                 logger.warning("No more population found, stopping generations.")
@@ -116,15 +151,22 @@ class GeneticAlgorithm:
 
             # Evaluate fitness of the current population
             fitness_scores = [
-                self.calculate_fitness(member, cur_generation) for member in self.population
+                self.calculate_fitness(member, cur_generation)
+                for member in self.population
             ]
             # Find the best individual in the current generation
             # Note: If there is no best solution, it will still consider based on sorting order
             fitness_scores = sorted(
-                fitness_scores, key=lambda x: x.fitness_result.fitness_score, reverse=True
+                fitness_scores,
+                key=lambda x: x.fitness_result.fitness_score,
+                reverse=True,
             )
             self.best_of_generation.append(fitness_scores[0])
-            logger.info("Best Fitness: %f", fitness_scores[0].fitness_result.fitness_score)
+            logger.info(
+                "Best Fitness: %f", fitness_scores[0].fitness_result.fitness_score
+            )
+
+            self.adapt_mutation_rate()
 
             self.adapt_mutation_rate()
 
@@ -159,7 +201,9 @@ class GeneticAlgorithm:
 
             # Inject random members to population to diversify scenarios
             if rng.random() < self.config.population_injection_rate:
-                self.population.extend(self.create_population(self.config.population_injection_size))
+                self.population.extend(
+                    self.create_population(self.config.population_injection_size)
+                )
 
             cur_generation += 1
 
@@ -192,13 +236,12 @@ class GeneticAlgorithm:
             self.config.scenario_mutation_rate *= 0.9
 
         self.config.scenario_mutation_rate = max(
-            cfg.min,
-            min(self.config.scenario_mutation_rate, cfg.max)
+            cfg.min, min(self.config.scenario_mutation_rate, cfg.max)
         )
 
         logger.info(
             "Adaptive mutation triggered | mutation_rate=%.4f",
-            self.config.scenario_mutation_rate
+            self.config.scenario_mutation_rate,
         )
 
         self.stagnant_generations = 0
@@ -211,11 +254,13 @@ class GeneticAlgorithm:
         attempts = 0
         max_attempts = population_size * 10
 
-        population = []
-        # Make attempts to create population of given size, if not possible it will return less samples 
+        population: List[BaseScenario] = []
+        # Make attempts to create population of given size, if not possible it will return less samples
         while len(population) < population_size and attempts < max_attempts:
             attempts += 1
-            scenario = ScenarioFactory.generate_random_scenario(self.config, self.valid_scenarios)
+            scenario = ScenarioFactory.generate_random_scenario(
+                self.config, self.valid_scenarios
+            )
 
             if scenario and scenario not in already_seen:
                 population.append(scenario)
@@ -224,14 +269,19 @@ class GeneticAlgorithm:
         # If we could not generate enough unique scenarios, duplicate some samples
         if len(population) < population_size:
             missing = population_size - len(population)
-            logger.warning("Could not generate enough unique scenarios, duplicating %d samples", missing)
+            logger.warning(
+                "Could not generate enough unique scenarios, duplicating %d samples",
+                missing,
+            )
 
             available_scenarios = list(
                 set(population.copy()) | set(self.seen_population.keys())
             )
 
             if len(available_scenarios) == 0:
-                raise UniqueScenariosError("Please adjust population size or scenario configuration to generate unique scenarios.")
+                raise UniqueScenariosError(
+                    "Please adjust population size or scenario configuration to generate unique scenarios."
+                )
 
             for _ in range(missing):
                 population.append(rng.choice(available_scenarios))
@@ -242,7 +292,9 @@ class GeneticAlgorithm:
         # If scenario has already been run, do not run it again.
         # we will rely on mutation for the same parents to produce newer samples
         if scenario in self.seen_population:
-            logger.info("Scenario %s already evaluated, skipping fitness calculation.", scenario)
+            logger.info(
+                "Scenario %s already evaluated, skipping fitness calculation.", scenario
+            )
             result = self.seen_population[scenario]
             result = copy.deepcopy(result)
             result.generation_id = generation_id
@@ -256,7 +308,8 @@ class GeneticAlgorithm:
         self.save_scenario_result(scenario_result)
         self.health_check_reporter.plot_report(scenario_result)
         self.health_check_reporter.write_fitness_result(scenario_result)
-        self.elastic_client.index_run_result(scenario_result, self.run_uuid)
+        if self.elastic_client is not None:
+            self.elastic_client.index_run_result(scenario_result, self.run_uuid)
 
         return scenario_result
 
@@ -265,7 +318,7 @@ class GeneticAlgorithm:
             scenario.scenario_a = self.mutate(scenario.scenario_a)
             scenario.scenario_b = self.mutate(scenario.scenario_b)
             return scenario
-        
+
         # Scenario mutation (new scenario, try to preserve properties)
         if rng.random() < self.config.scenario_mutation_rate:
             success, new_scenario = self.scenario_mutation(scenario)
@@ -281,20 +334,22 @@ class GeneticAlgorithm:
         return scenario
 
     def scenario_mutation(self, scenario: BaseScenario):
-        '''
+        """
         Create a new scenario of different type while trying to preserve properties.
-        '''
+        """
         # check scenarios for common parameters
         common_scenarios = []
         for _, scenario_cls in self.valid_scenarios:
             # instantiate new scenario for a scenario type
-            new_scenario = scenario_cls(cluster_components=self.config.cluster_components)
+            new_scenario = scenario_cls(
+                cluster_components=self.config.cluster_components
+            )
 
             common_params = set([type(x) for x in new_scenario.parameters]) & set(
                 [type(x) for x in scenario.parameters]
             )
             # Do not consider the same scenario type for scenario mutation
-            if len(common_params) > 0 and type(new_scenario) != type(scenario):
+            if len(common_params) > 0 and not isinstance(new_scenario, type(scenario)):
                 common_scenarios.append(new_scenario)
 
         if len(common_scenarios) == 0:
@@ -305,7 +360,9 @@ class GeneticAlgorithm:
         new_scenario = rng.choice(common_scenarios)
 
         # Identify common parameters and set them to the new scenario
-        common_params = set([type(x) for x in new_scenario.parameters]) & set([type(x) for x in scenario.parameters])
+        common_params = set([type(x) for x in new_scenario.parameters]) & set(
+            [type(x) for x in scenario.parameters]
+        )
         for param_type in common_params:
             # Get parameter value from original scenario
             param_value = self.__get_param_value(scenario, param_type)
@@ -329,7 +386,7 @@ class GeneticAlgorithm:
 
         # Normalize to positive range
         if max_f == min_f:
-            shifted = [1 for _ in raw]   # identical fitness
+            shifted: List[float] = [1.0 for _ in raw]  # identical fitness
         else:
             shifted = [(f - min_f) / (max_f - min_f) + 1e-8 for f in raw]
 
@@ -347,12 +404,19 @@ class GeneticAlgorithm:
         return parent1, parent2
 
     def crossover(self, scenario_a: BaseScenario, scenario_b: BaseScenario):
-        if isinstance(scenario_a, CompositeScenario) and isinstance(scenario_b, CompositeScenario):
+        if isinstance(scenario_a, CompositeScenario) and isinstance(
+            scenario_b, CompositeScenario
+        ):
             # Handle both scenario are composite
             # by swapping one of the branches
-            scenario_a.scenario_b, scenario_b.scenario_b = scenario_b.scenario_b, scenario_a.scenario_b
+            scenario_a.scenario_b, scenario_b.scenario_b = (
+                scenario_b.scenario_b,
+                scenario_a.scenario_b,
+            )
             return scenario_a, scenario_b
-        elif isinstance(scenario_a, CompositeScenario) or isinstance(scenario_b, CompositeScenario):
+        elif isinstance(scenario_a, CompositeScenario) or isinstance(
+            scenario_b, CompositeScenario
+        ):
             # Only one of them is composite
             if isinstance(scenario_a, CompositeScenario):
                 # Scenario A is composite and B is not
@@ -367,8 +431,14 @@ class GeneticAlgorithm:
                 scenario_b.scenario_a = scenario_a
                 return b_a, scenario_b
 
-        if not hasattr(scenario_a, "parameters") or not hasattr(scenario_b, "parameters"):
-            logger.warning("Scenario %s or %s does not have property 'parameters'", scenario_a, scenario_b)
+        if not hasattr(scenario_a, "parameters") or not hasattr(
+            scenario_b, "parameters"
+        ):
+            logger.warning(
+                "Scenario %s or %s does not have property 'parameters'",
+                scenario_a,
+                scenario_b,
+            )
             return scenario_a, scenario_b
 
         common_params = set([type(x) for x in scenario_a.parameters]) & set(
@@ -395,21 +465,23 @@ class GeneticAlgorithm:
 
     def composition(self, scenario_a: BaseScenario, scenario_b: BaseScenario):
         # combines two scenario to create a single composite scenario
-        dependency = rng.choice([
-            CompositeDependency.NONE,
-            CompositeDependency.A_ON_B,
-            CompositeDependency.B_ON_A
-        ])
+        dependency = rng.choice(
+            [
+                CompositeDependency.NONE,
+                CompositeDependency.A_ON_B,
+                CompositeDependency.B_ON_A,
+            ]
+        )
         composite_scenario = CompositeScenario(
             name="composite",
             scenario_a=scenario_a,
             scenario_b=scenario_b,
-            dependency=dependency
+            dependency=dependency,
         )
         return composite_scenario
 
     def save(self):
-        '''Save run results'''
+        """Save run results"""
         # TODO: Create a single result file (results.json) that contains summary of all the results
         self.generations_reporter.save_best_generations(self.best_of_generation)
         self.generations_reporter.save_best_generation_graph(self.best_of_generation)
@@ -417,79 +489,82 @@ class GeneticAlgorithm:
         self.health_check_reporter.sort_fitness_result_csv()
 
         # TODO: Send run summary to Elasticsearch
-        
 
     def save_config(self):
         logger.info("Saving config file to config.yaml")
         output_dir = self.output_dir
         os.makedirs(output_dir, exist_ok=True)
-        with open(
-            os.path.join(output_dir, "krkn-ai.yaml"),
-            "w",
-            encoding="utf-8"
-        ) as f:
-            config_data = self.config.model_dump(mode='json')
+        with open(os.path.join(output_dir, "krkn-ai.yaml"), "w", encoding="utf-8") as f:
+            config_data = self.config.model_dump(mode="json")
+            # exclude default values from cluster components
+            config_data["cluster_components"] = (
+                self.config.cluster_components.model_dump(
+                    mode="json", exclude_defaults=True
+                )
+            )
             yaml.dump(config_data, f, sort_keys=False)
 
     def save_log_file(self, command_result: CommandRunResult):
-        dir_path = os.path.join(self.output_dir, 'logs')
+        dir_path = os.path.join(self.output_dir, "logs")
         os.makedirs(dir_path, exist_ok=True)
         # Store log file in output directory under a "logs" folder.
         log_filename = format_result_filename(
-            self.config.output.log_name_fmt,
-            command_result
+            self.config.output.log_name_fmt, command_result
         )
         log_save_path = os.path.join(dir_path, log_filename)
-        with open(log_save_path, 'w', encoding='utf-8') as f:
+        with open(log_save_path, "w", encoding="utf-8") as f:
             f.write(command_result.log)
         return log_save_path
 
     def save_scenario_result(self, fitness_result: CommandRunResult):
-        logger.debug("Saving scenario result for scenario %s", fitness_result.scenario_id)
+        logger.debug(
+            "Saving scenario result for scenario %s", fitness_result.scenario_id
+        )
         result = fitness_result.model_dump()
         scenario_name = fitness_result.scenario.name
-        result['scenario']['name'] = scenario_name
-        generation_id = result['generation_id']
-        result['job_id'] = fitness_result.scenario_id
+        result["scenario"]["name"] = scenario_name
+        generation_id = result["generation_id"]
+        result["job_id"] = fitness_result.scenario_id
 
         # Store log in a log file and update log location
-        result['log'] = self.save_log_file(fitness_result)
+        result["log"] = self.save_log_file(fitness_result)
         # Convert timestamps to ISO string
-        result['start_time'] = (result['start_time']).isoformat()
-        result['end_time'] = (result['end_time']).isoformat()
+        result["start_time"] = (result["start_time"]).isoformat()
+        result["end_time"] = (result["end_time"]).isoformat()
 
-        output_dir = os.path.join(self.output_dir, self.format, "generation_%s" % generation_id)
+        output_dir = os.path.join(
+            self.output_dir, self.format, "generation_%s" % generation_id
+        )
         os.makedirs(output_dir, exist_ok=True)
 
         # Format YAML filename using configured format
         filename = format_result_filename(
-            self.config.output.result_name_fmt,
-            fitness_result
+            self.config.output.result_name_fmt, fitness_result
         )
         # Ensure the extension matches the format
-        if not filename.endswith(f'.{self.format}'):
+        if not filename.endswith(f".{self.format}"):
             # Remove any existing extension and add the correct one
             base_name = os.path.splitext(filename)[0]
             filename = f"{base_name}.{self.format}"
 
         with open(
-                os.path.join(output_dir, filename),
-                "w",
-                encoding="utf-8"
-            ) as file_handler:
-                if self.format == 'json':
-                    json.dump(result, file_handler, indent=4)
-                elif self.format == 'yaml':
-                    yaml.dump(result, file_handler, sort_keys=False)
+            os.path.join(output_dir, filename), "w", encoding="utf-8"
+        ) as file_handler:
+            if self.format == "json":
+                json.dump(result, file_handler, indent=4)
+            elif self.format == "yaml":
+                yaml.dump(result, file_handler, sort_keys=False)
 
     def __get_param_value(self, scenario: Scenario, param_type):
         for param in scenario.parameters:
-            if type(param) == param_type:
+            if isinstance(param, param_type):
                 return param.value
-        raise ValueError(f"Parameter type {param_type} not found in scenario {scenario}")
+        raise ValueError(
+            f"Parameter type {param_type} not found in scenario {scenario}"
+        )
 
     def __set_param_value(self, scenario: Scenario, param_type, value):
         for param in scenario.parameters:
-            if type(param) == param_type:
+            if isinstance(param, param_type):
                 param.value = value
                 return

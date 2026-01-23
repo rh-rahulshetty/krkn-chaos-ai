@@ -21,7 +21,7 @@ function evaluate_status_code() {
         # exit 1
     else
         echo "$url OK"
-    fi 
+    fi
 }
 
 evaluate_status_code /cart/health 200
@@ -30,7 +30,7 @@ evaluate_status_code /cart/add/1/Watson/1 200
 evaluate_status_code /catalogue/health 200
 evaluate_status_code /catalogue/categories 200
 evaluate_status_code /catalogue/products 200
-    
+
 evaluate_status_code /payment/health 200
 
 evaluate_status_code /ratings/_health 200

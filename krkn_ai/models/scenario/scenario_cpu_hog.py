@@ -1,10 +1,17 @@
 from collections import Counter
 import json
 
-from krkn_ai.models.custom_errors import ScenarioParameterInitError
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.scenario.base import Scenario
-from krkn_ai.models.scenario.parameters import *
+from krkn_ai.models.scenario.parameters import (
+    HogScenarioImageParameter,
+    NodeCPUPercentageParameter,
+    NamespaceParameter,
+    NodeSelectorParameter,
+    NumberOfNodesParameter,
+    TaintParameter,
+    TotalChaosDurationParameter,
+)
 
 
 class NodeCPUHogScenario(Scenario):
@@ -47,7 +54,7 @@ class NodeCPUHogScenario(Scenario):
             self.node_selector.value = f"kubernetes.io/hostname={node.name}"
             self.number_of_nodes.value = 1
             # Set taints for the selected node
-            self.taint.value = json.dumps(node.taints) if node.taints else '[]'
+            self.taint.value = json.dumps(node.taints) if node.taints else "[]"
             # self.node_cpu_core.value = node.free_cpu * 0.001  # convert to cores from millicores
         else:
             # scenario 2: Select a label
@@ -60,9 +67,9 @@ class NodeCPUHogScenario(Scenario):
             self.number_of_nodes.value = rng.randint(1, all_labels[label])
 
             # Get taints from matching nodes
-            key, value = label.split('=', 1)
+            key, value = label.split("=", 1)
             matching_nodes = [n for n in nodes if n.labels.get(key) == value]
-            
+
             # Collect all unique taints from matching nodes
             all_taints = []
             seen = set()
@@ -72,8 +79,8 @@ class NodeCPUHogScenario(Scenario):
                         if taint not in seen:
                             seen.add(taint)
                             all_taints.append(taint)
-            
-            self.taint.value = json.dumps(all_taints) if all_taints else '[]'
+
+            self.taint.value = json.dumps(all_taints) if all_taints else "[]"
 
             # get the minimum free cpu core for the selected label
             # min_cpu_core_milli = float('inf')

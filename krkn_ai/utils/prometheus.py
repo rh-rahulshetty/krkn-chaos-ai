@@ -8,6 +8,7 @@ from krkn_ai.models.custom_errors import PrometheusConnectionError
 
 logger = get_logger(__name__)
 
+
 def is_openshift(kubeconfig: str) -> bool:
     """
     Check if the cluster is OpenShift.
@@ -64,6 +65,8 @@ def create_prometheus_client(kubeconfig: str) -> KrknPrometheus:
         client.process_query("1")
         logger.debug("Successfully connected to Prometheus")
         return client
-    except Exception as e:
+    except Exception:
         # logger.exception("Unable to connect to Prometheus: %s", e)
-        raise PrometheusConnectionError("Unable to connect to Prometheus. Please check if Prometheus is running and accessible. Try setting the \"PROMETHEUS_URL\" and \"PROMETHEUS_TOKEN\" environment variables to connect to Prometheus instance.")
+        raise PrometheusConnectionError(
+            'Unable to connect to Prometheus. Please check if Prometheus is running and accessible. Try setting the "PROMETHEUS_URL" and "PROMETHEUS_TOKEN" environment variables to connect to Prometheus instance.'
+        )

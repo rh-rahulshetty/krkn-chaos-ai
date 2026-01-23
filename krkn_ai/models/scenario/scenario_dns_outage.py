@@ -1,8 +1,15 @@
-from collections import defaultdict
 from krkn_ai.models.custom_errors import ScenarioParameterInitError
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.scenario.base import Scenario
-from krkn_ai.models.scenario.parameters import *
+from krkn_ai.models.scenario.parameters import (
+    DNSOutageDurationParameter,
+    DNSOutageProtocolParameter,
+    DNSPortParameter,
+    EgressParameter,
+    IngressParameter,
+    NamespaceParameter,
+    PodNameParameter,
+)
 
 
 class DnsOutageScenario(Scenario):

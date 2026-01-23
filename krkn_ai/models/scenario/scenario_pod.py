@@ -2,7 +2,14 @@ from typing import List, Tuple
 from krkn_ai.models.custom_errors import ScenarioParameterInitError
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.scenario.base import Scenario
-from krkn_ai.models.scenario.parameters import *
+from krkn_ai.models.scenario.parameters import (
+    DisruptionCountParameter,
+    ExpRecoveryTimeParameter,
+    KillTimeoutParameter,
+    NamePatternParameter,
+    NamespaceParameter,
+    PodLabelParameter,
+)
 from krkn_ai.models.cluster_components import Namespace, Pod
 
 
@@ -43,7 +50,9 @@ class PodScenario(Scenario):
                     namespace_pod_tuple.append((namespace, pod))
 
         if len(namespace_pod_tuple) == 0:
-            raise ScenarioParameterInitError("No pods found with labels for pod scenario")
+            raise ScenarioParameterInitError(
+                "No pods found with labels for pod scenario"
+            )
 
         # Select a random namespace and pod from the tuple list
         namespace, pod = rng.choice(namespace_pod_tuple)
@@ -55,4 +64,3 @@ class PodScenario(Scenario):
 
         # pod_label is a string of the form "key=value"
         self.pod_label.value = "{}={}".format(label, labels[label])
-

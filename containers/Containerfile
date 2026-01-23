@@ -8,7 +8,11 @@ LABEL org.opencontainers.image.title="Krkn-AI" \
 
 WORKDIR /app
 
+# Set shell to bash with pipefail for safer RUN commands
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Install system dependencies including podman, python, and required tools
+# hadolint ignore=DL3041
 RUN dnf install -y \
     podman \
     python3.12 \
@@ -63,15 +67,11 @@ COPY . .
 # Install krkn-ai in editable mode into venv
 RUN uv pip install -e .
 
-# Copy entrypoint script
+# Copy entrypoint script and setup directories
 COPY containers/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-# Create mount points for input/output
-RUN mkdir -p /input /output
-
-# Make /app writable for any user (needed for --userns=keep-id)
-RUN chmod -R 777 /app
+RUN chmod +x /entrypoint.sh && \
+    mkdir -p /input /output && \
+    chmod -R 777 /app
 
 # Set virtual environment path
 ENV VIRTUAL_ENV=/app/.venv

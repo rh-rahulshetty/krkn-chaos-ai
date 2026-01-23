@@ -1,0 +1,48 @@
+# Pre-commit configuration using ruff (fast linter/formatter for Python)
+# Install with: pip install pre-commit ruff
+# Then enable: pre-commit install
+# to update hooks: pre-commit autoupdate
+# Run against all files: pre-commit run --all-files
+
+repos:
+  # Ruff - Python linter (replaces flake8, isort, black)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: "v0.14.14"
+    hooks:
+      # Run ruff linter with auto-fix
+      - id: ruff
+        args: ["--fix"]
+      # Run ruff formatter (replaces black)
+      - id: ruff-format
+
+  # Standard pre-commit hooks for file quality
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: check-yaml
+        exclude: ^scripts/monitoring/.*\.yaml$
+      - id: check-toml
+      - id: check-json
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # Hadolint - Dockerfile/Containerfile linter
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.14.0
+    hooks:
+      - id: hadolint-docker
+        files: ^containers/Containerfile$
+
+  # Mypy - static type checker
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-PyYAML, types-requests]

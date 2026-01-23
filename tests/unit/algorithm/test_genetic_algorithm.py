@@ -1,6 +1,7 @@
 """
 GeneticAlgorithm core functionality tests
 """
+
 import os
 import pytest
 from unittest.mock import Mock, patch
@@ -14,13 +15,13 @@ class TestGeneticAlgorithmInitialization:
 
     def test_init_with_valid_config(self, minimal_config, temp_output_dir):
         """Test initialization with valid config and config file creation"""
-        with patch('krkn_ai.algorithm.genetic.KrknRunner'):
-            with patch('krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios') as mock_gen:
+        with patch("krkn_ai.algorithm.genetic.KrknRunner"):
+            with patch(
+                "krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios"
+            ) as mock_gen:
                 mock_gen.return_value = [("pod_scenarios", Mock)]
                 ga = GeneticAlgorithm(
-                    config=minimal_config,
-                    output_dir=temp_output_dir,
-                    format="yaml"
+                    config=minimal_config, output_dir=temp_output_dir, format="yaml"
                 )
                 assert ga.config == minimal_config
                 assert ga.output_dir == temp_output_dir
@@ -31,29 +32,33 @@ class TestGeneticAlgorithmInitialization:
                 config_path = os.path.join(temp_output_dir, "krkn-ai.yaml")
                 assert os.path.exists(config_path)
 
-    def test_init_with_population_size_less_than_2(self, minimal_config, temp_output_dir):
+    def test_init_with_population_size_less_than_2(
+        self, minimal_config, temp_output_dir
+    ):
         """Test raises error when population size is less than 2"""
         minimal_config.population_size = 1
-        with patch('krkn_ai.algorithm.genetic.KrknRunner'):
-            with patch('krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios') as mock_gen:
+        with patch("krkn_ai.algorithm.genetic.KrknRunner"):
+            with patch(
+                "krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios"
+            ) as mock_gen:
                 mock_gen.return_value = [("pod_scenarios", Mock)]
-                with pytest.raises(PopulationSizeError, match="Population size should be at least 2"):
+                with pytest.raises(
+                    PopulationSizeError, match="Population size should be at least 2"
+                ):
                     GeneticAlgorithm(
-                        config=minimal_config,
-                        output_dir=temp_output_dir,
-                        format="yaml"
+                        config=minimal_config, output_dir=temp_output_dir, format="yaml"
                     )
 
     def test_init_with_odd_population_size(self, minimal_config, temp_output_dir):
         """Test odd population size is adjusted to even"""
         minimal_config.population_size = 5
-        with patch('krkn_ai.algorithm.genetic.KrknRunner'):
-            with patch('krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios') as mock_gen:
+        with patch("krkn_ai.algorithm.genetic.KrknRunner"):
+            with patch(
+                "krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios"
+            ) as mock_gen:
                 mock_gen.return_value = [("pod_scenarios", Mock)]
                 ga = GeneticAlgorithm(
-                    config=minimal_config,
-                    output_dir=temp_output_dir,
-                    format="yaml"
+                    config=minimal_config, output_dir=temp_output_dir, format="yaml"
                 )
                 assert ga.config.population_size == 6
 
@@ -63,17 +68,25 @@ class TestGeneticAlgorithmCoreMethods:
 
     def test_save_method_calls_reporters(self, genetic_algorithm):
         """Test save method calls all reporters"""
-        with patch.object(genetic_algorithm.generations_reporter, 'save_best_generations') as mock_save_gen:
-            with patch.object(genetic_algorithm.generations_reporter, 'save_best_generation_graph') as mock_graph:
-                with patch.object(genetic_algorithm.health_check_reporter, 'save_report') as mock_save_report:
-                    with patch.object(genetic_algorithm.health_check_reporter, 'sort_fitness_result_csv') as mock_sort:
+        with patch.object(
+            genetic_algorithm.generations_reporter, "save_best_generations"
+        ) as mock_save_gen:
+            with patch.object(
+                genetic_algorithm.generations_reporter, "save_best_generation_graph"
+            ) as mock_graph:
+                with patch.object(
+                    genetic_algorithm.health_check_reporter, "save_report"
+                ) as mock_save_report:
+                    with patch.object(
+                        genetic_algorithm.health_check_reporter,
+                        "sort_fitness_result_csv",
+                    ) as mock_sort:
                         genetic_algorithm.best_of_generation = [Mock()]
                         genetic_algorithm.seen_population = {Mock(): Mock()}
                         genetic_algorithm.save()
-                        
+
                         # Verify all reporter methods are called
                         assert mock_save_gen.called
                         assert mock_graph.called
                         assert mock_save_report.called
                         assert mock_sort.called
-

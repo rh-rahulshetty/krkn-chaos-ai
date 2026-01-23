@@ -183,10 +183,10 @@ def test_example_function(self, fixture):
     """Test description"""
     # Arrange: Set up test data and mocks
     input_data = "test"
-    
+
     # Act: Call the function being tested
     result = example_function(input_data)
-    
+
     # Assert: Verify the results
     assert result == expected_output
 ```
@@ -261,9 +261,9 @@ def custom_fixture():
     """Description of the fixture"""
     # Setup
     data = create_test_data()
-    
+
     yield data
-    
+
     # Teardown (optional)
     cleanup_test_data(data)
 ```

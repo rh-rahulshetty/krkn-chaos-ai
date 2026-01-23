@@ -1,7 +1,5 @@
-from os import name
 import re
-import ssl
-from typing import List
+from typing import List, Union
 from krkn_lib.k8s.krkn_kubernetes import KrknKubernetes
 from kubernetes.client.models import V1PodSpec
 from krkn_ai.utils import run_shell
@@ -16,10 +14,10 @@ from krkn_ai.models.cluster_components import (
     Service,
     ServicePort,
 )
-from krkn_ai.utils.logger import get_logger
-from krkn_ai.models.cluster_components import ClusterComponents, Container, Namespace, Node, Pod, VMI
+from krkn_ai.models.cluster_components import VMI
 
 logger = get_logger(__name__)
+
 
 class ClusterManager:
     def __init__(self, kubeconfig: str):
@@ -31,7 +29,8 @@ class ClusterManager:
         self.custom_obj_api = self.krkn_k8s.custom_object_client
         logger.debug("ClusterManager initialized with kubeconfig: %s", kubeconfig)
 
-    def discover_components(self,
+    def discover_components(
+        self,
         namespace_pattern: str = None,
         pod_label_pattern: str = None,
         node_label_pattern: str = None,
@@ -51,10 +50,8 @@ class ClusterManager:
             namespaces[i].vmis = vmis
 
         return ClusterComponents(
-            namespaces=namespaces,
-            nodes=self.list_nodes(node_label_pattern)
+            namespaces=namespaces, nodes=self.list_nodes(node_label_pattern)
         )
-
 
     def list_namespaces(self, namespace_pattern: str = None) -> List[Namespace]:
         logger.debug("Namespace pattern: %s", namespace_pattern)
@@ -74,10 +71,10 @@ class ClusterManager:
         return [Namespace(name=ns) for ns in filtered_namespaces]
 
     def list_pods(
-        self, 
+        self,
         namespace: Namespace,
-        pod_labels_patterns: List[str],
-        skip_pod_name_patterns: List[str] = []
+        pod_labels_patterns: Union[str, List[str], None] = None,
+        skip_pod_name_patterns: List[str] = [],
     ) -> List[Pod]:
         pod_labels_patterns = self.__process_pattern(pod_labels_patterns)
 
@@ -86,8 +83,13 @@ class ClusterManager:
 
         for pod in pods:
             # Skip if podname matches any of the skip_pod_name_patterns
-            if any(re.match(pattern, pod.metadata.name) for pattern in skip_pod_name_patterns):
-                logger.debug("Skipping pod %s in namespace %s", pod.metadata.name, namespace.name)
+            if any(
+                re.match(pattern, pod.metadata.name)
+                for pattern in skip_pod_name_patterns
+            ):
+                logger.debug(
+                    "Skipping pod %s in namespace %s", pod.metadata.name, namespace.name
+                )
                 continue
 
             pod_component = Pod(
@@ -133,15 +135,19 @@ class ClusterManager:
                 )
             )
 
-        logger.debug("Discovered %d services in namespace %s", len(service_list), namespace.name)
+        logger.debug(
+            "Discovered %d services in namespace %s", len(service_list), namespace.name
+        )
         return service_list
 
     def list_pvcs(self, namespace: Namespace) -> List[PVC]:
         """List all PVCs in the namespace"""
         try:
-            pvcs = self.core_api.list_namespaced_persistent_volume_claim(namespace=namespace.name).items
+            pvcs = self.core_api.list_namespaced_persistent_volume_claim(
+                namespace=namespace.name
+            ).items
             pvc_list = []
-            
+
             for pvc in pvcs:
                 pvc_list.append(
                     PVC(
@@ -149,11 +155,15 @@ class ClusterManager:
                         labels=pvc.metadata.labels or {},
                     )
                 )
-            
-            logger.debug("Discovered %d PVCs in namespace %s", len(pvc_list), namespace.name)
+
+            logger.debug(
+                "Discovered %d PVCs in namespace %s", len(pvc_list), namespace.name
+            )
             return pvc_list
         except Exception as e:
-            logger.warning("Failed to list PVCs in namespace %s: %s", namespace.name, str(e))
+            logger.warning(
+                "Failed to list PVCs in namespace %s: %s", namespace.name, str(e)
+            )
             return []
 
     def list_containers(self, pod_spec: V1PodSpec) -> List[Container]:
@@ -168,27 +178,37 @@ class ClusterManager:
 
     def list_vmis(self, namespace: Namespace) -> List[VMI]:
         try:
-            vmis_response = self.custom_obj_api.list_namespaced_custom_object("kubevirt.io","v1",namespace.name,"virtualmachineinstances")
+            vmis_response = self.custom_obj_api.list_namespaced_custom_object(
+                "kubevirt.io", "v1", namespace.name, "virtualmachineinstances"
+            )
             vmis = vmis_response.get("items", [])
             vmi_list = []
             if vmis:
-                logger.debug("Found %d vmis in namespace %s", len(vmis), vmis[0]["metadata"]["name"])
+                logger.debug(
+                    "Found %d vmis in namespace %s",
+                    len(vmis),
+                    vmis[0]["metadata"]["name"],
+                )
             else:
                 logger.debug("No VMIs found in namespace %s", namespace.name)
             for vmi in vmis:
-                vmi_component = VMI(
-                    name=vmi["metadata"]["name"]
-                )
+                vmi_component = VMI(name=vmi["metadata"]["name"])
                 vmi_list.append(vmi_component)
 
-            logger.debug("Filtered %d vmis in namespace %s", len(vmi_list), namespace.name)
+            logger.debug(
+                "Filtered %d vmis in namespace %s", len(vmi_list), namespace.name
+            )
             return vmi_list
-        except Exception as e:
+        except Exception:
             logger.warning("Unable to find VMIs in namespace %s", namespace.name)
             return []
 
-    def list_nodes(self, node_label_pattern: str = None) -> List[Node]:
-        node_label_pattern = list(set(self.__process_pattern(node_label_pattern) + ["kubernetes.io/hostname"]))
+    def list_nodes(
+        self, node_label_pattern: Union[str, List[str], None] = None
+    ) -> List[Node]:
+        node_label_patterns = list(
+            set(self.__process_pattern(node_label_pattern) + ["kubernetes.io/hostname"])
+        )
 
         nodes = self.core_api.list_node().items
 
@@ -196,7 +216,7 @@ class ClusterManager:
 
         for node in nodes:
             labels = {}
-            for pattern in node_label_pattern:
+            for pattern in node_label_patterns:
                 if node.metadata.labels is not None:
                     for label in node.metadata.labels:
                         if re.match(pattern, label):
@@ -211,17 +231,19 @@ class ClusterManager:
                         taint_str = f"{taint.key}:{taint.effect}"
                     taints.append(taint_str)
 
-            node_component = Node(
-                name=node.metadata.name,
-                labels=labels,
-                taints=taints
-            )
+            node_component = Node(name=node.metadata.name, labels=labels, taints=taints)
 
             try:
-                node_component.interfaces = self.list_node_interfaces(node.metadata.name)
+                node_component.interfaces = self.list_node_interfaces(
+                    node.metadata.name
+                )
             except Exception as e:
-                logger.error("Failed to list node interfaces for node %s: %s", node.metadata.name, e)
-            
+                logger.error(
+                    "Failed to list node interfaces for node %s: %s",
+                    node.metadata.name,
+                    e,
+                )
+
             try:
                 alloc_cpu = self.parse_cpu(node.status.allocatable["cpu"])
                 alloc_mem = self.parse_memory(node.status.allocatable["memory"])
@@ -229,9 +251,13 @@ class ClusterManager:
                 node_component.free_cpu = alloc_cpu - usage_cpu
                 node_component.free_mem = alloc_mem - usage_mem
             except Exception as e:
-                node_component.free_cpu = -1 # -1 means not available
-                node_component.free_mem = -1 # -1 means not available
-                logger.error("Failed to fetch node metrics for node %s: %s", node.metadata.name, e)
+                node_component.free_cpu = -1  # -1 means not available
+                node_component.free_mem = -1  # -1 means not available
+                logger.error(
+                    "Failed to fetch node metrics for node %s: %s",
+                    node.metadata.name,
+                    e,
+                )
             node_list.append(node_component)
 
         logger.debug("Filtered %d nodes", len(node_list))
@@ -240,11 +266,14 @@ class ClusterManager:
     def list_node_interfaces(self, node: str) -> List[str]:
         # List all the interfaces on the node
         logger.debug("Listing node interfaces for node %s", node)
-        log, code = run_shell(f"oc debug -q node/{node} -- chroot /host ls /sys/class/net", do_not_log=True)
+        log, code = run_shell(
+            f"oc debug -q node/{node} -- chroot /host ls /sys/class/net",
+            do_not_log=True,
+        )
         if code != 0:
             logger.warning("Unable to find interfaces for node %s", node)
             return []
-        
+
         interfaces = []
         interfaces_list = [x.strip() for x in log.splitlines()]
 
@@ -254,37 +283,41 @@ class ClusterManager:
         for intf in interfaces_list:
             # TODO: Check which interfaces to consider for network chaos
             # ens5, eth0, br-ex, br-int, etc. as well as other interfaces like lo, ovs-system, etc.
-            # Krkn validation doesn't work with interfaces with name like ABC-XYZ 
+            # Krkn validation doesn't work with interfaces with name like ABC-XYZ
             if intf.startswith("ens") or intf.startswith("eth"):
                 interfaces.append(intf)
 
         return interfaces
 
-    def __process_pattern(self, pattern_string: str = None) -> List[str]:
+    def __process_pattern(
+        self, pattern_string: Union[str, List[str], None] = None
+    ) -> List[str]:
         # Used for handling skip_pod_name pattern None
         if pattern_string is None:
             return []
 
-        # Check whether multiple namespaces are specified
-        if ',' in pattern_string:
-            patterns = [pattern.strip() for pattern in pattern_string.split(',')]
+        # If already a list, return it
+        if isinstance(pattern_string, list):
+            return pattern_string
+
+        # Check whether multiple patterns are specified in comma-separated string
+        if "," in pattern_string:
+            patterns = [pattern.strip() for pattern in pattern_string.split(",")]
         else:
             patterns = [pattern_string.strip()]
-        
+
         return patterns
 
     def __fetch_node_metrics(self, node: str):
         metrics = self.custom_obj_api.list_cluster_custom_object(
-            group="metrics.k8s.io",
-            version="v1beta1",
-            plural="nodes"
+            group="metrics.k8s.io", version="v1beta1", plural="nodes"
         )
 
         for item in metrics["items"]:
             name = item["metadata"]["name"]
             if name == node:
-                usage_cpu = item["usage"]["cpu"]       # e.g. "250m"
-                usage_mem = item["usage"]["memory"]    # e.g. "1024Mi"
+                usage_cpu = item["usage"]["cpu"]  # e.g. "250m"
+                usage_mem = item["usage"]["memory"]  # e.g. "1024Mi"
                 return self.parse_cpu(usage_cpu), self.parse_memory(usage_mem)
 
         raise ValueError(f"Metrics not found for node: {node}")
@@ -303,13 +336,13 @@ class ClusterManager:
         if cpu_str is None:
             return 0.0
         s = str(cpu_str).strip()
-        if s.endswith('n'):        # nanocores
+        if s.endswith("n"):  # nanocores
             n = int(s[:-1])
             return n / 1_000_000.0
-        if s.endswith('u'):        # microcores
+        if s.endswith("u"):  # microcores
             u = int(s[:-1])
             return u / 1000.0
-        if s.endswith('m'):        # millicores
+        if s.endswith("m"):  # millicores
             return float(s[:-1])
         # plain cores: 1, 0.5, 1.25, etc
         try:
@@ -329,15 +362,29 @@ class ClusterManager:
         '512M'      -> 512_000_000
         '1024'      -> 1024
         """
-        _mem_power2 = {'Ki':1024, 'Mi':1024**2, 'Gi':1024**3, 'Ti':1024**4, 'Pi':1024**5, 'Ei':1024**6}
-        _mem_power10 = {'K':1000, 'M':1000**2, 'G':1000**3, 'T':1000**4, 'P':1000**5, 'E':1000**6}
+        _mem_power2 = {
+            "Ki": 1024,
+            "Mi": 1024**2,
+            "Gi": 1024**3,
+            "Ti": 1024**4,
+            "Pi": 1024**5,
+            "Ei": 1024**6,
+        }
+        _mem_power10 = {
+            "K": 1000,
+            "M": 1000**2,
+            "G": 1000**3,
+            "T": 1000**4,
+            "P": 1000**5,
+            "E": 1000**6,
+        }
 
         if mem_str is None:
             return 0
         s = str(mem_str).strip()
-        if re.fullmatch(r'^\d+(\.\d+)?$', s):
+        if re.fullmatch(r"^\d+(\.\d+)?$", s):
             return int(float(s))
-        m = re.fullmatch(r'^([0-9.]+)\s*([a-zA-Z]+)$', s)
+        m = re.fullmatch(r"^([0-9.]+)\s*([a-zA-Z]+)$", s)
         if not m:
             raise ValueError(f"Unable to parse memory string: {s}")
         val = float(m.group(1))

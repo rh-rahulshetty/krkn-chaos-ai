@@ -7,6 +7,7 @@ _LOGGER_INITIALIZED = False
 _LOG_DIR: Optional[str] = None
 _VERBOSE: bool = False
 
+
 def init_logger(output_dir: Optional[str] = None, verbose: bool = False):
     """Initialize global logger configuration once."""
 
@@ -31,13 +32,13 @@ def init_logger(output_dir: Optional[str] = None, verbose: bool = False):
         return
 
     # Configure parent logger: handlers live here, children will propagate to it
-    parent.setLevel(logging.DEBUG)         # accept all levels; handler controls output
-    parent.propagate = False               # don't let messages go to root
+    parent.setLevel(logging.DEBUG)  # accept all levels; handler controls output
+    parent.propagate = False  # don't let messages go to root
 
     # Console handler
     console = logging.StreamHandler()
     console.setLevel(log_level)
-    console.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
+    console.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
     parent.addHandler(console)
 
     # Optional file handler
@@ -45,11 +46,13 @@ def init_logger(output_dir: Optional[str] = None, verbose: bool = False):
         os.makedirs(output_dir, exist_ok=True)
         file_path = os.path.join(output_dir, "run.log")
         fh = logging.FileHandler(file_path)
-        fh.setLevel(logging.DEBUG)   # capture everything in file
-        fh.setFormatter(logging.Formatter(
-            "%(asctime)s %(levelname)-8s [%(name)s] %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
-        ))
+        fh.setLevel(logging.DEBUG)  # capture everything in file
+        fh.setFormatter(
+            logging.Formatter(
+                "%(asctime)s %(levelname)-8s [%(name)s] %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+        )
         parent.addHandler(fh)
 
     _LOGGER_INITIALIZED = True

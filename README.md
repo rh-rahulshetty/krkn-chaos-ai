@@ -17,7 +17,7 @@ An intelligent chaos engineering framework that uses genetic algorithms to optim
 - **Prometheus Integration**: Metrics-driven fitness evaluation
 - **Configurable Fitness Functions**: Point-based and range-based fitness evaluation
 - **Population Evolution**: Maintains and evolves populations of chaos scenarios across generations
- 
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -118,7 +118,7 @@ output:
   log_name_fmt: "scenario_%s.log"
 
 # Fitness function configuration
-fitness_function: 
+fitness_function:
   query: 'sum(kube_pod_container_status_restarts_total{namespace="robot-shop"})'
   type: point  # or 'range'
   include_krkn_failure: true
@@ -283,7 +283,52 @@ The current version of Krkn-AI leverages an [evolutionary algorithm](https://en.
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
+3. Commit your changes and run the [static checks](#static-checks) (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+### Static Checks
+
+Developers should run the project's static checks locally before committing. Below are recommended commands and notes for common environments (PowerShell / Bash).
+
+
+- Install tooling used for checks:
+
+```bash
+# Activate Virtual Environment
+source .venv/bin/activate
+
+# Install dev requirement
+uv pip install -r requirements-dev.txt
+```
+
+- Install Git hooks (runs once per developer):
+
+```bash
+pre-commit install
+pre-commit autoupdate
+```
+
+- Run all pre-commit hooks against the repository (fast, recommended):
+
+```bash
+pre-commit run --all-files
+```
+
+- Run individual tools directly:
+
+```bash
+# Ruff (linter/formatter)
+ruff check .
+ruff format .
+
+# Mypy (type checking)
+mypy --config-file mypy.ini krkn_ai
+
+# Hadolint (Dockerfile/Containerfile linting) - Docker must be available
+hadolint containers/Containerfile
+```
+
+Notes:
+- The `pre-commit` configuration runs `ruff`, various file checks, and `hadolint` for container files. If `hadolint` fails with a Docker error, ensure Docker Desktop/daemon is running on your machine (the hook needs to query Docker to validate containerfile context).
+- Use `pre-commit run --all-files` to validate changes before pushing. CI will also run these checks.

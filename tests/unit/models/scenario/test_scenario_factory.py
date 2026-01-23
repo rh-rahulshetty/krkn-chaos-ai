@@ -1,6 +1,7 @@
 """
 ScenarioFactory tests
 """
+
 import pytest
 from unittest.mock import patch
 from krkn_ai.models.scenario.factory import ScenarioFactory
@@ -21,7 +22,7 @@ class TestScenarioFactory:
             kubeconfig_file_path="/tmp/kubeconfig",
             fitness_function=FitnessFunction(query="test"),
             scenario=ScenarioConfig(**{"pod-scenarios": {"enable": True}}),
-            cluster_components=cluster
+            cluster_components=cluster,
         )
         candidates = ScenarioFactory.list_scenarios(config)
         assert len(candidates) == 1
@@ -34,38 +35,47 @@ class TestScenarioFactory:
             kubeconfig_file_path="/tmp/kubeconfig",
             fitness_function=FitnessFunction(query="test"),
             scenario=ScenarioConfig(**{"pod-scenarios": {"enable": False}}),
-            cluster_components=cluster
+            cluster_components=cluster,
         )
         candidates = ScenarioFactory.list_scenarios(config)
         assert len(candidates) == 0
 
-    @patch('krkn_ai.models.scenario.factory.initialize_kubeconfig')
-    def test_generate_valid_scenarios_raises_error_when_no_scenarios(self, mock_initialize_kubeconfig):
+    @patch("krkn_ai.models.scenario.factory.initialize_kubeconfig")
+    def test_generate_valid_scenarios_raises_error_when_no_scenarios(
+        self, mock_initialize_kubeconfig
+    ):
         """Test that generate_valid_scenarios raises MissingScenarioError when no scenarios enabled"""
         cluster = ClusterComponents(namespaces=[], nodes=[])
         config = ConfigFile(
             kubeconfig_file_path="/tmp/kubeconfig",
             fitness_function=FitnessFunction(query="test"),
             scenario=ScenarioConfig(),
-            cluster_components=cluster
+            cluster_components=cluster,
         )
         with pytest.raises(MissingScenarioError, match="No scenarios found"):
             ScenarioFactory.generate_valid_scenarios(config)
 
-    @patch('krkn_ai.models.scenario.factory.initialize_kubeconfig')
-    def test_generate_valid_scenarios_raises_error_when_no_valid_scenarios(self, mock_initialize_kubeconfig):
+    @patch("krkn_ai.models.scenario.factory.initialize_kubeconfig")
+    def test_generate_valid_scenarios_raises_error_when_no_valid_scenarios(
+        self, mock_initialize_kubeconfig
+    ):
         """Test that generate_valid_scenarios raises error when all scenarios fail initialization"""
         cluster = ClusterComponents(namespaces=[], nodes=[])
         config = ConfigFile(
             kubeconfig_file_path="/tmp/kubeconfig",
             fitness_function=FitnessFunction(query="test"),
             scenario=ScenarioConfig(**{"pod-scenarios": {"enable": True}}),
-            cluster_components=cluster
+            cluster_components=cluster,
         )
         # Mock scenario class to raise exception during initialization
-        with patch('krkn_ai.models.scenario.scenario_pod.PodScenario') as mock_scenario_class:
+        with patch(
+            "krkn_ai.models.scenario.scenario_pod.PodScenario"
+        ) as mock_scenario_class:
             from krkn_ai.models.custom_errors import ScenarioParameterInitError
-            mock_scenario_class.side_effect = ScenarioParameterInitError("Invalid parameters")
+
+            mock_scenario_class.side_effect = ScenarioParameterInitError(
+                "Invalid parameters"
+            )
             with pytest.raises(MissingScenarioError, match="No valid scenarios found"):
                 ScenarioFactory.generate_valid_scenarios(config)
 
@@ -75,7 +85,7 @@ class TestScenarioFactory:
         config = ConfigFile(
             kubeconfig_file_path="/tmp/kubeconfig",
             fitness_function=FitnessFunction(query="test"),
-            cluster_components=cluster
+            cluster_components=cluster,
         )
         candidates = [("dummy_scenarios", DummyScenario)]
         scenario = ScenarioFactory.generate_random_scenario(config, candidates)
@@ -87,13 +97,14 @@ class TestScenarioFactory:
         config = ConfigFile(
             kubeconfig_file_path="/tmp/kubeconfig",
             fitness_function=FitnessFunction(query="test"),
-            cluster_components=cluster
+            cluster_components=cluster,
         )
+
         # Create a mock scenario class that raises an exception
         class FailingScenario:
             def __init__(self, **kwargs):
                 raise Exception("Initialization failed")
-        
+
         candidates = [("failing", FailingScenario)]
         with pytest.raises(ScenarioInitError):
             ScenarioFactory.generate_random_scenario(config, candidates)
@@ -103,4 +114,3 @@ class TestScenarioFactory:
         scenario = ScenarioFactory.create_dummy_scenario()
         assert isinstance(scenario, DummyScenario)
         assert scenario._cluster_components == ClusterComponents()
-

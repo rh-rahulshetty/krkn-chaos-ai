@@ -3,7 +3,18 @@ import json
 
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.scenario.base import Scenario
-from krkn_ai.models.scenario.parameters import *
+from krkn_ai.models.scenario.parameters import (
+    HogScenarioImageParameter,
+    IOBlockSizeParameter,
+    IOWorkersParameter,
+    IOWriteBytesParameter,
+    NamespaceParameter,
+    NodeMountPathParameter,
+    NodeSelectorParameter,
+    NumberOfNodesParameter,
+    TaintParameter,
+    TotalChaosDurationParameter,
+)
 from krkn_ai.models.custom_errors import ScenarioParameterInitError
 
 
@@ -46,8 +57,10 @@ class NodeIOHogScenario(Scenario):
         nodes = self._cluster_components.nodes
 
         if len(nodes) == 0:
-            raise ScenarioParameterInitError("No nodes found in cluster components for node-io-hog scenario")
-        
+            raise ScenarioParameterInitError(
+                "No nodes found in cluster components for node-io-hog scenario"
+            )
+
         all_labels = Counter()
         for node in nodes:
             for label, value in node.labels.items():
@@ -59,7 +72,7 @@ class NodeIOHogScenario(Scenario):
             self.node_selector.value = f"kubernetes.io/hostname={node.name}"
             self.number_of_nodes.value = 1
             # Set taints for the selected node
-            self.taint.value = json.dumps(node.taints) if node.taints else '[]'
+            self.taint.value = json.dumps(node.taints) if node.taints else "[]"
         else:
             # scenario 2: Select a label
             label = rng.choice(list(all_labels.keys()))
@@ -67,9 +80,9 @@ class NodeIOHogScenario(Scenario):
             self.number_of_nodes.value = rng.randint(1, all_labels[label])
 
             # Get taints from matching nodes
-            key, value = label.split('=', 1)
+            key, value = label.split("=", 1)
             matching_nodes = [n for n in nodes if n.labels.get(key) == value]
-            
+
             # Collect all unique taints from matching nodes
             all_taints = []
             seen = set()
@@ -79,10 +92,9 @@ class NodeIOHogScenario(Scenario):
                         if taint not in seen:
                             seen.add(taint)
                             all_taints.append(taint)
-            
-            self.taint.value = json.dumps(all_taints) if all_taints else '[]'
+
+            self.taint.value = json.dumps(all_taints) if all_taints else "[]"
 
         self.io_workers.mutate()
         self.io_write_bytes.mutate()
         self.io_block_size.mutate()
-

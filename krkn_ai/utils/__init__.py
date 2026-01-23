@@ -15,9 +15,9 @@ def id_generator() -> Iterator[int]:
 
 
 def run_shell(command, do_not_log=False):
-    '''
+    """
     Run shell command and get logs and statuscode in output.
-    '''
+    """
     logs = ""
     command = shlex.split(command)
     # Let's show the command name being executed

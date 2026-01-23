@@ -7,7 +7,7 @@
 #
 # Description:
 # Setup Krkn CLI locally.
-# 
+#
 #
 # Usage:
 # ./setup-krknctl.sh
@@ -15,7 +15,7 @@
 # Pre-requisite:
 # - jq
 # - curl
-# 
+#
 #******************************************************************************
 
 set -e  # Exit on error

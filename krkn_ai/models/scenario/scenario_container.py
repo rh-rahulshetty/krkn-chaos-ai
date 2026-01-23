@@ -3,13 +3,22 @@ from krkn_ai.models.cluster_components import Namespace, Pod
 from krkn_ai.models.custom_errors import ScenarioParameterInitError
 from krkn_ai.utils.rng import rng
 from krkn_ai.models.scenario.base import Scenario
-from krkn_ai.models.scenario.parameters import *
+from krkn_ai.models.scenario.parameters import (
+    ActionParameter,
+    ContainerNameParameter,
+    DisruptionCountParameter,
+    ExpRecoveryTimeParameter,
+    LabelSelectorParameter,
+    NamespaceParameter,
+)
 
 
 class ContainerScenario(Scenario):
     name: str = "container-scenarios"
     krknctl_name: str = "container-scenarios"
-    krknhub_image: str = "containers.krkn-chaos.dev/krkn-chaos/krkn-hub:container-scenarios"
+    krknhub_image: str = (
+        "containers.krkn-chaos.dev/krkn-chaos/krkn-hub:container-scenarios"
+    )
 
     namespace: NamespaceParameter = NamespaceParameter()
     label_selector: LabelSelectorParameter = LabelSelectorParameter()
@@ -43,7 +52,9 @@ class ContainerScenario(Scenario):
                     namespace_pod_tuple.append((namespace, pod))
 
         if len(namespace_pod_tuple) == 0:
-            raise ScenarioParameterInitError("No pods found with labels for container scenario")
+            raise ScenarioParameterInitError(
+                "No pods found with labels for container scenario"
+            )
 
         # Select a random namespace and pod from the tuple list
         namespace, pod = rng.choice(namespace_pod_tuple)

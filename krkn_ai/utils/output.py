@@ -2,12 +2,12 @@ import re
 
 from krkn_ai.models.app import CommandRunResult
 
-_INVALID_FILENAME_CHARS = re.compile(r'[^A-Za-z0-9._-]')
+_INVALID_FILENAME_CHARS = re.compile(r"[^A-Za-z0-9._-]")
 
 
 def _sanitize_filename_component(value: str) -> str:
     """Replace characters that are unsafe for filenames."""
-    return _INVALID_FILENAME_CHARS.sub('_', value)
+    return _INVALID_FILENAME_CHARS.sub("_", value)
 
 
 def format_result_filename(fmt: str, command_result: CommandRunResult) -> str:
@@ -22,10 +22,11 @@ def format_result_filename(fmt: str, command_result: CommandRunResult) -> str:
     scenario_name = getattr(command_result.scenario, "name", "") or ""
     safe_name = _sanitize_filename_component(str(scenario_name))
     return (
-        fmt.replace('%g', str(command_result.generation_id))
-           .replace('%s', str(command_result.scenario_id))
-           .replace('%c', safe_name)
+        fmt.replace("%g", str(command_result.generation_id))
+        .replace("%s", str(command_result.scenario_id))
+        .replace("%c", safe_name)
     )
+
 
 def format_duration(duration: float) -> str:
     """
@@ -37,4 +38,3 @@ def format_duration(duration: float) -> str:
         return f"{duration / 60:.2f} minutes"
     else:
         return f"{duration / 3600:.2f} hours"
-
