@@ -429,6 +429,8 @@ class GeneticAlgorithm:
             encoding="utf-8"
         ) as f:
             config_data = self.config.model_dump(mode='json')
+            # exclude default values from cluster components
+            config_data['cluster_components'] = self.config.cluster_components.model_dump(mode='json', exclude_defaults=True)
             yaml.dump(config_data, f, sort_keys=False)
 
     def save_log_file(self, command_result: CommandRunResult):

@@ -64,13 +64,16 @@ class ScenarioFactory:
 
         # Initialize kubeconfig for PVC utilities
         initialize_kubeconfig(config.kubeconfig_file_path)
+
+        # Get active components (filtered out disabled ones)
+        active_components = config.cluster_components.get_active_components()
         
         # Validate scenarios and find valid scenarios
         valid_scenarios = []
         for name, cls in candidates:
             try:
-                # Try to instantiate the scenario
-                cls(cluster_components=config.cluster_components)
+                # Try to instantiate the scenario with active components only
+                cls(cluster_components=active_components)
                 valid_scenarios.append((name, cls))
             except ScenarioParameterInitError as error:
                 logger.warning("Unable to initialize scenario %s, please make sure cluster components for scenario are valid", name)
@@ -93,9 +96,11 @@ class ScenarioFactory:
         Generate a random scenario from the list of valid scenarios.
         '''
         try:
+            # Get active components (filtered out disabled ones)
+            active_components = config.cluster_components.get_active_components()
             # Unpack Scenario class and create instance
             _, cls = rng.choice(candidates)
-            return cls(cluster_components=config.cluster_components)
+            return cls(cluster_components=active_components)
         except Exception as error:
             raise ScenarioInitError("Unable to initialize scenario: %s", error)
 

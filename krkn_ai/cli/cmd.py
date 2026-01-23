@@ -134,7 +134,7 @@ def discover(
         skip_pod_name=skip_pod_name
     )
 
-    cluster_components_data = cluster_components.model_dump(mode='json', warnings='none')
+    cluster_components_data = cluster_components.model_dump(mode='json', warnings='none', exclude_defaults=True)
 
     template = create_krkn_ai_template(kubeconfig, cluster_components_data)
 
