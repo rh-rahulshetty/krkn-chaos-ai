@@ -27,9 +27,17 @@ def run_shell(command, do_not_log=False, timeout=None):
     command = shlex.split(command)
     logger.debug("Running command: %s", command[0])
 
-    process = subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
-    )
+    try:
+        process = subprocess.Popen(
+            command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        )
+    except OSError as e:
+        if not do_not_log:
+            logger.error("Failed to execute '%s': %s", command[0], e)
+        else:
+            logger.debug("Failed to execute '%s': %s", command[0], e)
+        return "", 127
+
 
     output_lines = []
 
