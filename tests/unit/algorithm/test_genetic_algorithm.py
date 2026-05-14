@@ -103,7 +103,7 @@ class TestGeneticAlgorithmCoreMethods:
                             assert mock_summary_reporter.called
                             assert (
                                 mock_summary_reporter.call_args.kwargs[
-                                    "final_scenario_mutation_rate"
+                                    "scenario_mutation_rate"
                                 ]
                                 == final_rate
                             )

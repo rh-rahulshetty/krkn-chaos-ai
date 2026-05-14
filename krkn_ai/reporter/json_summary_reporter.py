@@ -34,7 +34,7 @@ class JSONSummaryReporter:
         end_time: Optional[datetime.datetime] = None,
         completed_generations: int = 0,
         seed: Optional[int] = None,
-        final_scenario_mutation_rate: Optional[float] = None,
+        scenario_mutation_rate: Optional[float] = None,
     ):
         """
         Initialize the JSON summary reporter.
@@ -48,7 +48,7 @@ class JSONSummaryReporter:
             end_time: When the run ended.
             completed_generations: Number of generations completed.
             seed: Random seed used for the run (if any).
-            final_scenario_mutation_rate: Scenario mutation rate to write in the
+            scenario_mutation_rate: Scenario mutation rate to write in the
                 summary.
         """
         self.run_uuid = run_uuid
@@ -62,8 +62,8 @@ class JSONSummaryReporter:
         self.seed = seed
         self.scenario_mutation_rate = (
             config.scenario_mutation_rate
-            if final_scenario_mutation_rate is None
-            else final_scenario_mutation_rate
+            if scenario_mutation_rate is None
+            else scenario_mutation_rate
         )
         self.status = STATUS_COMPLETED
 

@@ -746,7 +746,7 @@ class GeneticAlgorithm:
             end_time=self.end_time,
             completed_generations=self.completed_generations,
             seed=self.seed,
-            final_scenario_mutation_rate=self.current_scenario_mutation_rate,
+            scenario_mutation_rate=self.current_scenario_mutation_rate,
         )
         summary_reporter.save(self.output_dir)
 
