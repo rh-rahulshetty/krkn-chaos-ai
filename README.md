@@ -157,7 +157,7 @@ output:
 
 # Fitness function configuration
 fitness_function:
-  # Aggregate the query so it returns one Prometheus series.
+  # Use an aggregate query that returns one Prometheus series.
   query: 'sum(kube_pod_container_status_restarts_total{namespace="robot-shop"})'
   type: point  # or 'range'
   include_krkn_failure: true

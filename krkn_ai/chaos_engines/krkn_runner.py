@@ -13,7 +13,10 @@ from krkn_ai.models.app import (
     KrknRunnerType,
 )
 from krkn_ai.models.config import ConfigFile, FitnessFunctionType
-from krkn_ai.models.custom_errors import FitnessFunctionCalculationError
+from krkn_ai.models.custom_errors import (
+    FitnessFunctionCalculationError,
+    FitnessFunctionConfigurationError,
+)
 from krkn_ai.models.scenario.base import (
     Scenario,
     BaseScenario,
@@ -411,6 +414,8 @@ class KrknRunner:
                     return self.calculate_point_fitness(start, end, query)
                 elif fitness_type == FitnessFunctionType.range:
                     return self.calculate_range_fitness(start, end, query)
+            except FitnessFunctionConfigurationError:
+                raise
             except Exception as error:
                 logger.error(f"Fitness function calculation failed: {error}")
                 logger.info(
@@ -474,11 +479,11 @@ class KrknRunner:
             context: Description of where this is called from (for error messages)
 
         Returns:
-            The metric value as a string from a single Prometheus series
+            The Prometheus value as a string
 
         Raises:
             FitnessFunctionCalculationError: If Prometheus returns no data or
-                more than one non-empty series
+                more than one series
         """
         result = self.prom_client.process_prom_query_in_range(
             query,
@@ -501,17 +506,18 @@ class KrknRunner:
     def _extract_single_prometheus_value(
         self, result, query: str, context: str, no_data_error: str
     ) -> str:
-        series_with_values = [series for series in result or [] if series.get("values")]
-        if not series_with_values:
-            raise FitnessFunctionCalculationError(no_data_error)
-        if len(series_with_values) > 1:
-            raise FitnessFunctionCalculationError(
-                f"Prometheus returned {len(series_with_values)} series for query "
+        series_list = result or []
+        if len(series_list) > 1:
+            raise FitnessFunctionConfigurationError(
+                f"Prometheus returned {len(series_list)} series for query "
                 f"'{query}' during {context}. Fitness queries must return exactly "
                 "one series. Use sum(), max(), avg(), or another PromQL aggregate "
                 "before using this query as a fitness function."
             )
-        return series_with_values[0]["values"][-1][1]
+
+        if not series_list or not series_list[0].get("values"):
+            raise FitnessFunctionCalculationError(no_data_error)
+        return series_list[0]["values"][-1][1]
 
     def calculate_range_fitness(self, start, end, query):
         """

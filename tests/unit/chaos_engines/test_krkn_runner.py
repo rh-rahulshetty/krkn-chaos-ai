@@ -14,7 +14,10 @@ from krkn_ai.models.config import (
     FitnessFunctionType,
     HealthCheckConfig,
 )
-from krkn_ai.models.custom_errors import FitnessFunctionCalculationError
+from krkn_ai.models.custom_errors import (
+    FitnessFunctionCalculationError,
+    FitnessFunctionConfigurationError,
+)
 from krkn_ai.models.scenario.scenario_dummy import DummyScenario
 from krkn_ai.models.scenario.base import CompositeScenario, CompositeDependency
 from krkn_ai.models.cluster_components import ClusterComponents
@@ -428,6 +431,43 @@ class TestCalculatePointFitness:
             )
             assert "sum()" in str(exc_info.value)
 
+    def test_query_prometheus_single_point_counts_empty_series(
+        self, minimal_config, temp_output_dir
+    ):
+        """Test an extra empty series is still rejected"""
+        minimal_config.fitness_function = FitnessFunction(
+            query="kube_pod_container_status_restarts_total",
+            type=FitnessFunctionType.point,
+        )
+
+        mock_prom_client = Mock()
+        mock_prom_client.process_prom_query_in_range.return_value = [
+            {"metric": {"container": "cart"}, "values": [[1000, "5"]]},
+            {"metric": {"container": "payment"}, "values": []},
+        ]
+
+        with patch(
+            "krkn_ai.chaos_engines.krkn_runner.create_prometheus_client",
+            return_value=mock_prom_client,
+        ):
+            runner = KrknRunner(
+                config=minimal_config,
+                output_dir=temp_output_dir,
+                runner_type=KrknRunnerType.CLI_RUNNER,
+            )
+            runner.prom_client = mock_prom_client
+
+            ts = datetime.datetime(2024, 1, 1, 12, 0, 0)
+
+            with pytest.raises(FitnessFunctionConfigurationError) as exc_info:
+                runner._query_prometheus_single_point(
+                    "kube_pod_container_status_restarts_total",
+                    ts,
+                    "point fitness (start)",
+                )
+
+            assert "Prometheus returned 2 series" in str(exc_info.value)
+
 
 class TestCalculateRangeFitness:
     """Test calculate_range_fitness"""
@@ -579,6 +619,50 @@ class TestCalculateRangeFitness:
 
 class TestCalculateFitnessValueRetries:
     """Test calculate_fitness_value retry behavior with empty Prometheus data"""
+
+    @patch("krkn_ai.chaos_engines.krkn_runner.time.sleep")
+    @patch("krkn_ai.chaos_engines.krkn_runner.env_is_truthy", return_value=False)
+    def test_calculate_fitness_value_does_not_retry_multi_series_error(
+        self, mock_env, mock_sleep, minimal_config, temp_output_dir
+    ):
+        """Test multi-series errors are not retried"""
+        minimal_config.fitness_function = FitnessFunction(
+            query="kube_pod_container_status_restarts_total",
+            type=FitnessFunctionType.point,
+        )
+
+        mock_prom_client = Mock()
+        mock_prom_client.process_prom_query_in_range.return_value = [
+            {"metric": {"container": "cart"}, "values": [[1000, "5"]]},
+            {"metric": {"container": "payment"}, "values": [[1000, "3"]]},
+        ]
+
+        with patch(
+            "krkn_ai.chaos_engines.krkn_runner.create_prometheus_client",
+            return_value=mock_prom_client,
+        ):
+            runner = KrknRunner(
+                config=minimal_config,
+                output_dir=temp_output_dir,
+                runner_type=KrknRunnerType.CLI_RUNNER,
+            )
+            runner.prom_client = mock_prom_client
+
+            start = datetime.datetime(2024, 1, 1, 12, 0, 0)
+            end = datetime.datetime(2024, 1, 1, 12, 5, 0)
+
+            with pytest.raises(FitnessFunctionConfigurationError) as exc_info:
+                runner.calculate_fitness_value(
+                    start,
+                    end,
+                    "kube_pod_container_status_restarts_total",
+                    FitnessFunctionType.point,
+                )
+
+            assert "Prometheus returned 2 series" in str(exc_info.value)
+            assert "sum()" in str(exc_info.value)
+            assert mock_prom_client.process_prom_query_in_range.call_count == 1
+            mock_sleep.assert_not_called()
 
     @patch("krkn_ai.chaos_engines.krkn_runner.time.sleep")
     @patch("krkn_ai.chaos_engines.krkn_runner.env_is_truthy", return_value=False)
