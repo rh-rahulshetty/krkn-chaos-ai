@@ -387,6 +387,47 @@ class TestCalculatePointFitness:
             assert "up" in str(exc_info.value)
             assert "2024-01-01 12:00:00" in str(exc_info.value)
 
+    def test_query_prometheus_single_point_multiple_series_raises_error(
+        self, minimal_config, temp_output_dir
+    ):
+        """Test point fitness rejects Prometheus results with multiple series"""
+        minimal_config.fitness_function = FitnessFunction(
+            query="kube_pod_container_status_restarts_total",
+            type=FitnessFunctionType.point,
+        )
+
+        mock_prom_client = Mock()
+        mock_prom_client.process_prom_query_in_range.return_value = [
+            {"metric": {"container": "cart"}, "values": [[1000, "5"]]},
+            {"metric": {"container": "payment"}, "values": [[1000, "3"]]},
+        ]
+
+        with patch(
+            "krkn_ai.chaos_engines.krkn_runner.create_prometheus_client",
+            return_value=mock_prom_client,
+        ):
+            runner = KrknRunner(
+                config=minimal_config,
+                output_dir=temp_output_dir,
+                runner_type=KrknRunnerType.CLI_RUNNER,
+            )
+            runner.prom_client = mock_prom_client
+
+            ts = datetime.datetime(2024, 1, 1, 12, 0, 0)
+
+            with pytest.raises(FitnessFunctionCalculationError) as exc_info:
+                runner._query_prometheus_single_point(
+                    "kube_pod_container_status_restarts_total",
+                    ts,
+                    "point fitness (start)",
+                )
+
+            assert "Prometheus returned 2 series" in str(exc_info.value)
+            assert "Fitness queries must return exactly one series" in str(
+                exc_info.value
+            )
+            assert "sum()" in str(exc_info.value)
+
 
 class TestCalculateRangeFitness:
     """Test calculate_range_fitness"""
@@ -425,6 +466,46 @@ class TestCalculateRangeFitness:
             call_str = str(mock_prom_client.process_prom_query_in_range.call_args)
             assert "10m" in call_str
             assert score == 15.5
+
+    def test_calculate_range_fitness_multiple_series_raises_error(
+        self, minimal_config, temp_output_dir
+    ):
+        """Test range fitness rejects Prometheus results with multiple series"""
+        minimal_config.fitness_function = FitnessFunction(
+            query="max_over_time(container_cpu_usage_seconds_total{$range$})",
+            type=FitnessFunctionType.range,
+        )
+
+        mock_prom_client = Mock()
+        mock_prom_client.process_prom_query_in_range.return_value = [
+            {"metric": {"container": "cart"}, "values": [[1000, "15.5"]]},
+            {"metric": {"container": "payment"}, "values": [[1000, "8.0"]]},
+        ]
+
+        with patch(
+            "krkn_ai.chaos_engines.krkn_runner.create_prometheus_client",
+            return_value=mock_prom_client,
+        ):
+            runner = KrknRunner(
+                config=minimal_config,
+                output_dir=temp_output_dir,
+                runner_type=KrknRunnerType.CLI_RUNNER,
+            )
+            runner.prom_client = mock_prom_client
+
+            start = datetime.datetime(2024, 1, 1, 12, 0, 0)
+            end = datetime.datetime(2024, 1, 1, 12, 10, 0)
+
+            with pytest.raises(FitnessFunctionCalculationError) as exc_info:
+                runner.calculate_range_fitness(
+                    start,
+                    end,
+                    "max_over_time(container_cpu_usage_seconds_total{$range$})",
+                )
+
+            assert "Prometheus returned 2 series" in str(exc_info.value)
+            assert "range fitness" in str(exc_info.value)
+            assert "sum()" in str(exc_info.value)
 
     def test_calculate_range_fitness_empty_values_raises_error(
         self, minimal_config, temp_output_dir

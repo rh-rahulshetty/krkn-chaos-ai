@@ -474,10 +474,11 @@ class KrknRunner:
             context: Description of where this is called from (for error messages)
 
         Returns:
-            The metric value as a string
+            The metric value as a string from a single Prometheus series
 
         Raises:
-            FitnessFunctionCalculationError: If Prometheus returns no data
+            FitnessFunctionCalculationError: If Prometheus returns no data or
+                more than one non-empty series
         """
         result = self.prom_client.process_prom_query_in_range(
             query,
@@ -485,20 +486,32 @@ class KrknRunner:
             end_time=timestamp,
             granularity=100,
         )
-        if not result:
-            raise FitnessFunctionCalculationError(
-                f"Prometheus returned no data for query '{query}' at {timestamp} "
-                f"during {context}. This may indicate the metric does not exist "
-                f"in the requested time range or Prometheus has not yet scraped data."
-            )
-        for series in result:
-            if series.get("values"):
-                return series["values"][-1][1]
-        raise FitnessFunctionCalculationError(
+        no_data_error = (
             f"Prometheus returned no data for query '{query}' at {timestamp} "
             f"during {context}. This may indicate the metric does not exist "
             f"in the requested time range or Prometheus has not yet scraped data."
         )
+        return self._extract_single_prometheus_value(
+            result,
+            query,
+            context,
+            no_data_error,
+        )
+
+    def _extract_single_prometheus_value(
+        self, result, query: str, context: str, no_data_error: str
+    ) -> str:
+        series_with_values = [series for series in result or [] if series.get("values")]
+        if not series_with_values:
+            raise FitnessFunctionCalculationError(no_data_error)
+        if len(series_with_values) > 1:
+            raise FitnessFunctionCalculationError(
+                f"Prometheus returned {len(series_with_values)} series for query "
+                f"'{query}' during {context}. Fitness queries must return exactly "
+                "one series. Aggregate fan-out queries with PromQL functions such "
+                "as sum(), max(), or avg()."
+            )
+        return series_with_values[0]["values"][-1][1]
 
     def calculate_range_fitness(self, start, end, query):
         """
@@ -507,6 +520,8 @@ class KrknRunner:
 
         config.fitness_function.query can specify a dynamic "$range$" parameter that will be replaced
         when calling below function.
+        Fitness queries must return exactly one Prometheus series. Aggregate metrics
+        that fan out by labels with PromQL functions such as sum(), max(), or avg().
         """
         logger.debug("Calculating Range Fitness")
 
@@ -527,19 +542,18 @@ class KrknRunner:
             end_time=end,
             granularity=100,
         )
-        if not result:
-            raise FitnessFunctionCalculationError(
-                f"Prometheus returned no data for query '{query}' in range "
-                f"[{start}, {end}]. This may indicate the metric does not exist "
-                f"in the requested time range or Prometheus has not yet scraped data."
-            )
-        for series in result:
-            if series.get("values"):
-                return float(series["values"][-1][1])
-        raise FitnessFunctionCalculationError(
+        no_data_error = (
             f"Prometheus returned no data for query '{query}' in range "
             f"[{start}, {end}]. This may indicate the metric does not exist "
             f"in the requested time range or Prometheus has not yet scraped data."
+        )
+        return float(
+            self._extract_single_prometheus_value(
+                result,
+                query,
+                f"range fitness in range [{start}, {end}]",
+                no_data_error,
+            )
         )
 
     def __extract_returncode_from_run(
