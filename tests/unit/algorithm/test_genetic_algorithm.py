@@ -84,39 +84,42 @@ class TestGeneticAlgorithmCoreMethods:
     """Test GeneticAlgorithm core methods"""
 
     def test_simulate_updates_completed_generations(self, genetic_algorithm):
-        """Test simulate tracks completed generations after evaluation"""
+        """Track completed generations after simulate evaluates populations."""
         genetic_algorithm.config.generations = 2
         genetic_algorithm.config.population_size = 2
         genetic_algorithm.config.baseline.enable = False
         genetic_algorithm.config.population_injection_rate = 0.0
 
-        initial_population = [Mock(name="scenario-1"), Mock(name="scenario-2")]
-        next_population = [Mock(name="scenario-3"), Mock(name="scenario-4")]
+        first_generation = [Mock(name="scenario-1"), Mock(name="scenario-2")]
+        offspring_generation = [Mock(name="scenario-3"), Mock(name="scenario-4")]
 
-        fitness_results = []
+        generation_results = []
         for score in [10.0, 20.0, 30.0, 40.0]:
             result = Mock()
             result.fitness_result.fitness_score = score
-            fitness_results.append(result)
+            generation_results.append(result)
 
         with patch.object(genetic_algorithm, "run_baseline") as mock_baseline:
             with patch.object(
-                genetic_algorithm, "create_population", return_value=initial_population
+                genetic_algorithm, "create_population", return_value=first_generation
             ):
                 with patch.object(
                     genetic_algorithm,
                     "calculate_fitness",
-                    side_effect=fitness_results,
+                    side_effect=generation_results,
                 ) as mock_calculate:
                     with patch.object(
                         genetic_algorithm,
                         "select_parents",
-                        return_value=(initial_population[0], initial_population[1]),
+                        return_value=(first_generation[0], first_generation[1]),
                     ):
                         with patch.object(
                             genetic_algorithm,
                             "crossover",
-                            return_value=(next_population[0], next_population[1]),
+                            return_value=(
+                                offspring_generation[0],
+                                offspring_generation[1],
+                            ),
                         ):
                             with patch.object(
                                 genetic_algorithm,
@@ -159,7 +162,6 @@ class TestGeneticAlgorithmCoreMethods:
                             genetic_algorithm.completed_generations = 2
                             genetic_algorithm.save()
 
-                            # Verify all reporter methods are called
                             assert mock_save_gen.called
                             assert mock_graph.called
                             assert mock_save_report.called
