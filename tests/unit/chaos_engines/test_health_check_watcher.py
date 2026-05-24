@@ -104,7 +104,7 @@ class TestHealthCheckWatcherRunAndStop:
         assert actual_timeout is not None
         assert 0 <= actual_timeout <= 0.25
         mock_warning.assert_called_once_with(
-            "Health check worker thread %s did not stop within %.2f seconds; "
+            "Health check worker thread %s is still running after %.2f seconds; "
             "continuing shutdown",
             "health-check-stuck",
             0.25,

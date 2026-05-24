@@ -113,7 +113,7 @@ class HealthCheckWatcher:
             t.join(timeout=timeout)
             if t.is_alive():
                 logger.warning(
-                    "Health check worker thread %s did not stop within %.2f seconds; "
+                    "Health check worker thread %s is still running after %.2f seconds; "
                     "continuing shutdown",
                     t.name,
                     self.config.stop_timeout,
