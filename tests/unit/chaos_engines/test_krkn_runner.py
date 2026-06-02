@@ -112,9 +112,8 @@ class TestKrknRunnerRun:
         mock_run_shell.return_value = ("error log", 1)
 
         with patch("krkn_ai.chaos_engines.krkn_runner.create_prometheus_client"):
-            with patch.object(
-                KrknRunner,
-                "_KrknRunner__extract_returncode_from_run",
+            with patch(
+                "krkn_ai.chaos_engines.krkn_runner.extract_telemetry_from_log",
                 return_value=(1, None),
             ):
                 runner = KrknRunner(
