@@ -132,7 +132,11 @@ def run(
     dashboard = DashboardManager(new_output_path, port) if monitoring else nullcontext()
 
     with dashboard:
-        if monitoring and not dashboard.is_running:
+        if (
+            monitoring
+            and isinstance(dashboard, DashboardManager)
+            and not dashboard.is_running
+        ):
             logger.warning(
                 "Dashboard did not start. Continuing run without monitoring."
             )
@@ -174,9 +178,7 @@ def run(
                         json.dump({"status": STATUS_FAILED}, f)
                 except Exception:
                     pass
-            logger.info(
-                "Check run.log file in '%s' for more details.", new_output_path
-            )
+            logger.info("Check run.log file in '%s' for more details.", new_output_path)
 
 
 @main.command(help="Monitor results from previous completed runs")

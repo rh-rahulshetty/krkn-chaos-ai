@@ -6,9 +6,11 @@ MODULE = "krkn_ai.dashboard.manager"
 
 
 def test_start_success():
-    with patch(f"{MODULE}.subprocess.Popen") as mock_popen, patch(
-        "builtins.open", mock_open()
-    ), patch(f"{MODULE}.atexit.register") as mock_atexit:
+    with (
+        patch(f"{MODULE}.subprocess.Popen") as mock_popen,
+        patch("builtins.open", mock_open()),
+        patch(f"{MODULE}.atexit.register") as mock_atexit,
+    ):
         mock_process = Mock()
         mock_process.wait.side_effect = subprocess.TimeoutExpired(cmd="cmd", timeout=2)
         mock_process.poll.return_value = None
@@ -98,9 +100,11 @@ def test_stop_kills_on_timeout():
 
 
 def test_context_manager_starts_and_stops():
-    with patch(f"{MODULE}.subprocess.Popen") as mock_popen, patch(
-        "builtins.open", mock_open()
-    ), patch(f"{MODULE}.atexit.register"):
+    with (
+        patch(f"{MODULE}.subprocess.Popen") as mock_popen,
+        patch("builtins.open", mock_open()),
+        patch(f"{MODULE}.atexit.register"),
+    ):
         mock_process = Mock()
         mock_process.wait.side_effect = [
             subprocess.TimeoutExpired(cmd="cmd", timeout=2),
@@ -116,9 +120,11 @@ def test_context_manager_starts_and_stops():
 
 
 def test_context_manager_stops_on_exception():
-    with patch(f"{MODULE}.subprocess.Popen") as mock_popen, patch(
-        "builtins.open", mock_open()
-    ), patch(f"{MODULE}.atexit.register"):
+    with (
+        patch(f"{MODULE}.subprocess.Popen") as mock_popen,
+        patch("builtins.open", mock_open()),
+        patch(f"{MODULE}.atexit.register"),
+    ):
         mock_process = Mock()
         mock_process.wait.side_effect = [
             subprocess.TimeoutExpired(cmd="cmd", timeout=2),
