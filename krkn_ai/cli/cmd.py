@@ -179,6 +179,11 @@ def run(
                 except Exception:
                     pass
             logger.info("Check run.log file in '%s' for more details.", new_output_path)
+            if monitoring:
+                logger.info(
+                    "To inspect results interactively, run: krkn-ai monitor -o %s",
+                    output,
+                )
 
 
 @main.command(help="Monitor results from previous completed runs")
