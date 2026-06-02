@@ -2,6 +2,7 @@ import os
 import sys
 import atexit
 import subprocess
+from typing import Optional
 from krkn_ai.utils.logger import get_logger
 
 
@@ -9,7 +10,7 @@ class DashboardManager:
     def __init__(self, output_dir: str, port: int):
         self._output_dir = os.path.abspath(output_dir if output_dir else "./")
         self._port = port
-        self._process: subprocess.Popen = None
+        self._process: Optional[subprocess.Popen] = None
         self._logger = get_logger(__name__)
 
     @property
