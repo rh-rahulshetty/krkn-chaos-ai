@@ -47,7 +47,7 @@ class NetworkScenario(Scenario):
 
     @property
     def parameters(self):
-        return [
+        params = [
             self.traffic_type,
             self.image,
             self.duration,
@@ -56,9 +56,10 @@ class NetworkScenario(Scenario):
             self.node_name,
             self.network_params,
             self.egress_params,
-            # self.interfaces,
-            self.target_node_interface,
         ]
+        if self.traffic_type.value == "ingress":
+            params.append(self.target_node_interface)
+        return params
 
     def mutate(self):
         # Get nodes with interfaces
@@ -75,14 +76,14 @@ class NetworkScenario(Scenario):
         self.traffic_type.value = "egress"
         self.execution.mutate()
 
-        if self.traffic_type.value == "ingress":
-            self.network_params.mutate()
-        elif self.traffic_type.value == "egress":
-            self.egress_params.mutate()
-
         node = rng.choice(nodes)
         self.node_name.value = node.name
         self.interfaces.value = f"[{rng.choice(node.interfaces)}]"
-        self.target_node_interface.value = (
-            "{" + f"{node.name}: [{rng.choice(node.interfaces)}]" + " }"
-        )
+
+        if self.traffic_type.value == "ingress":
+            self.network_params.mutate()
+            self.target_node_interface.value = (
+                "{" + f"{node.name}: [{rng.choice(node.interfaces)}]" + "}"
+            )
+        elif self.traffic_type.value == "egress":
+            self.egress_params.mutate()
