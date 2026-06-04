@@ -270,13 +270,15 @@ class NetworkScenarioNetworkParamsParameter(BaseParameter):
 
     def mutate(self):
         self.value.latency = rng.randint(1, 1000)
-        self.value.loss = round(rng.uniform(0.01, 0.1), 2)
         self.value.bandwidth = rng.randint(100, 1000)
 
     def get_value(self):
+        # TODO: Add support for loss once https://github.com/krkn-chaos/krkn-hub/pull/349 is merged
+        # loss is excluded: krknctl regex requires unquoted numeric values which
+        # YAML parses as float, but krkn's arcaflow model requires Dict[str, str]
         return (
             "{"
-            + f"latency: {self.value.latency}ms,loss: {self.value.loss},bandwidth: {self.value.bandwidth}mbit"
+            + f"latency: {self.value.latency}ms,bandwidth: {self.value.bandwidth}mbit"
             + "}"
         )
 

@@ -227,7 +227,9 @@ class KrknRunner:
                 env_list += f' -e {parameter.get_name(return_krknhub_name=True)}="{parameter.get_value()}" '
 
             command = PODMAN_TEMPLATE.format(
-                wait_duration=self.config.wait_duration,
+                wait_duration=scenario.scenario_wait_duration(
+                    self.config.wait_duration
+                ),
                 env_list=env_list,
                 kubeconfig=self.config.kubeconfig_file_path,
                 image=scenario.krknhub_image,
@@ -242,7 +244,9 @@ class KrknRunner:
                 env_list += f'--{param_name} "{parameter.get_value()}" '
 
             command = KRKNCTL_TEMPLATE.format(
-                wait_duration=self.config.wait_duration,
+                wait_duration=scenario.scenario_wait_duration(
+                    self.config.wait_duration
+                ),
                 env_list=env_list,
                 kubeconfig=self.config.kubeconfig_file_path,
                 name=scenario.krknctl_name,
