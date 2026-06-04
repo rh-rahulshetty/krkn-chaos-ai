@@ -18,11 +18,24 @@ An intelligent chaos engineering framework that uses genetic algorithms to optim
 - **Configurable Fitness Functions**: Point-based and range-based fitness evaluation
 - **Population Evolution**: Maintains and evolves populations of chaos scenarios across generations
 
+
+## 🧬 How It Works
+
+The current version of Krkn-AI leverages an [evolutionary algorithm](https://en.wikipedia.org/wiki/Evolutionary_algorithm), an optimization technique that uses heuristics to identify chaos scenarios and components that impact the stability of your cluster and applications.
+
+1. **Initial Population**: Creates random chaos scenarios based on your configuration
+2. **Fitness Evaluation**: Runs each scenario and measures system response using Prometheus metrics
+3. **Selection**: Identifies the most effective scenarios based on fitness scores
+4. **Evolution**: Creates new scenarios through crossover and mutation
+5. **Health Monitoring**: Continuously monitors application health during experiments
+6. **Iteration**: Repeats the process across multiple generations to find optimal scenarios
+
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 - [krknctl](https://github.com/krkn-chaos/krknctl)
+- [oc](https://mirror.openshift.com/pub/openshift-v4/clients/ocp/)
 - Python 3.11+
 - `uv` package manager (recommended) or `pip`
 - [podman](https://podman.io/)
@@ -51,30 +64,27 @@ uv run krkn_ai --help
 For demonstration purposes, deploy the robot-shop microservice:
 
 ```bash
+# Setup sample miroservice application example on cluster
 export DEMO_NAMESPACE=robot-shop
-export IS_OPENSHIFT=true
-#set IS_OPENSHIFT=false for kubernetes cluster
 ./scripts/setup-demo-microservice.sh
 
-# Set context to the demo namespace
-oc config set-context --current --namespace=$DEMO_NAMESPACE
-# or for kubectl:
-# kubectl config set-context --current --namespace=$DEMO_NAMESPACE
+# Switch context to the demo namespace
+kubectl config set-context --current --namespace=$DEMO_NAMESPACE
 ```
 
-### Setup Monitoring and Testing
+#### Setup Monitoring and Testing
 
 ```bash
 # Setup NGINX reverse proxy for external access
 ./scripts/setup-nginx.sh
 
-# Test application endpoints
+# Test application endpoints once the services are available
 ./scripts/test-nginx-routes.sh
 
 export HOST="http://$(kubectl get service rs -o json | jq -r '.status.loadBalancer.ingress[0].hostname')"
 ```
 
-## 📝 Generate Configuration
+#### 📝 Generate Configuration
 
 Krkn-AI uses YAML configuration files to define experiments. You can generate a sample config file dynamically by running Krkn-AI discover command.
 
@@ -85,34 +95,6 @@ uv run krkn_ai discover -k ./tmp/kubeconfig.yaml \
   -nl "kubernetes.io/hostname" \
   -o ./tmp/krkn-ai.yaml \
   --skip-pod-name "nginx-proxy.*"
-```
-
-### Pattern Syntax for Filtering
-
-The `-n` (namespace), `-pl` (pod-label), `-nl` (node-label), and `--skip-pod-name` options support flexible pattern matching:
-
-| Pattern | Description |
-|---------|-------------|
-| `robot-shop` | Match exactly "robot-shop" |
-| `robot-shop,default` | Match "robot-shop" OR "default" |
-| `openshift-.*` | Regex: match namespaces starting with "openshift-" |
-| `*` | Match all |
-| `!kube-system` | Match all EXCEPT "kube-system" |
-| `*,!kube-.*` | Match all except kube-* namespaces |
-| `openshift-.*,!openshift-operators` | Match openshift-* but exclude operators |
-
-**Examples:**
-
-```bash
-# Discover in all namespaces except kube-system and openshift-*
-uv run krkn_ai discover -k ./tmp/kubeconfig.yaml \
-  -n "!kube-system,!openshift-.*" \
-  -o ./tmp/krkn-ai.yaml
-
-# Discover in openshift namespaces but exclude operators
-uv run krkn_ai discover -k ./tmp/kubeconfig.yaml \
-  -n "openshift-.*,!openshift-operators" \
-  -o ./tmp/krkn-ai.yaml
 ```
 
 ```yaml
@@ -176,11 +158,11 @@ scenario:
   pod-scenarios:
     enable: true
   application-outages:
-    enable: false
+    enable: true
   container-scenarios:
     enable: false
   node-cpu-hog:
-    enable: false
+    enable: true
   node-memory-hog:
     enable: false
   kubevirt-outage:
@@ -213,28 +195,21 @@ cluster_components:
 You can modify `krkn-ai.yaml` as per your requirement to include/exclude any cluster components, scenarios, fitness function SLOs or health check endpoints for the Krkn-AI testing. For advanced customization, please refer to the krkn-ai docs.
 
 
-## 🎯 Usage
-
-### Basic Usage
+#### Running KrknAI Experiments
 
 ```bash
-# Configure custom Prometheus Querier endpoint and token
-export PROMETHEUS_URL='https://your-prometheus-url'
-export PROMETHEUS_TOKEN='your-prometheus-token'
-
-# Configure elastic search properties (optional)
-export ES_USER="elasticsearch-username"
-export __ES_PASSWORD="elasticsearch-password"
+# Configure Prometheus endpoint and token
+# export PROMETHEUS_URL='https://your-prometheus-url'
+# export PROMETHEUS_TOKEN='your-prometheus-token'
 
 # Run Krkn-AI
 uv run krkn_ai run \
   -c ./tmp/krkn-ai.yaml \
   -o ./tmp/results/ \
-  -p HOST=$HOST \
-  -p ES_USER=$ES_USER -p __ES_PASSWORD=$__ES_PASSWORD
+  -p HOST=$HOST
 ```
 
-### CLI Options
+## CLI Options
 
 ```bash
 $ uv run krkn_ai discover --help
@@ -296,11 +271,41 @@ Options:
 
 > **Note:** You can also run Krkn-AI as a container with Podman or on Kubernetes. See [container instructions](./containers/README.md).
 
-### Monitoring Dashboard
+
+## Advanced Filtering (discovery)
+
+The `-n` (namespace), `-pl` (pod-label), `-nl` (node-label), and `--skip-pod-name` options support flexible pattern matching:
+
+| Pattern | Description |
+|---------|-------------|
+| `robot-shop` | Match exactly "robot-shop" |
+| `robot-shop,default` | Match "robot-shop" OR "default" |
+| `openshift-.*` | Regex: match namespaces starting with "openshift-" |
+| `*` | Match all |
+| `!kube-system` | Match all EXCEPT "kube-system" |
+| `*,!kube-.*` | Match all except kube-* namespaces |
+| `openshift-.*,!openshift-operators` | Match openshift-* but exclude operators |
+
+**Examples:**
+
+```bash
+# Discover in all namespaces except kube-system and openshift-*
+uv run krkn_ai discover -k ./tmp/kubeconfig.yaml \
+  -n "!kube-system,!openshift-.*" \
+  -o ./tmp/krkn-ai.yaml
+
+# Discover in openshift namespaces but exclude operators
+uv run krkn_ai discover -k ./tmp/kubeconfig.yaml \
+  -n "openshift-.*,!openshift-operators" \
+  -o ./tmp/krkn-ai.yaml
+```
+
+
+## Monitoring Dashboard
 
 Krkn-AI includes a Streamlit-based dashboard for visualizing experiment progress and results.
 
-**Live monitoring during a run:**
+#### Live monitoring
 
 ```bash
 uv run krkn_ai run \
@@ -318,7 +323,7 @@ uv run krkn_ai run \
   --monitoring --port 9000
 ```
 
-**View results from a previous run:**
+#### View results
 
 ```bash
 uv run krkn_ai monitor -o ./tmp/results/
@@ -326,7 +331,7 @@ uv run krkn_ai monitor -o ./tmp/results/
 
 The dashboard provides tabs for fitness evolution, health checks, detailed scenario telemetry, logs, and configuration review.
 
-### Understanding Results
+## Understanding Results
 
 Each run of `krkn_ai run` creates a unique subdirectory (named by a generated UUID) inside the `--output` directory. All artifacts for that run are written there:
 
@@ -358,17 +363,6 @@ Each run of `krkn_ai run` creates a unique subdirectory (named by a generated UU
         ├── results.json
         └── krkn-ai.yaml
 ```
-
-## 🧬 How It Works
-
-The current version of Krkn-AI leverages an [evolutionary algorithm](https://en.wikipedia.org/wiki/Evolutionary_algorithm), an optimization technique that uses heuristics to identify chaos scenarios and components that impact the stability of your cluster and applications.
-
-1. **Initial Population**: Creates random chaos scenarios based on your configuration
-2. **Fitness Evaluation**: Runs each scenario and measures system response using Prometheus metrics
-3. **Selection**: Identifies the most effective scenarios based on fitness scores
-4. **Evolution**: Creates new scenarios through crossover and mutation
-5. **Health Monitoring**: Continuously monitors application health during experiments
-6. **Iteration**: Repeats the process across multiple generations to find optimal scenarios
 
 
 ## 🤝 Contributing

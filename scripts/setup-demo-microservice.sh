@@ -17,6 +17,14 @@
 # - User should be already logged into cluster before running the script
 #
 #******************************************************************************
+detect_openshift() {
+    if kubectl get clusterversion &>/dev/null; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
+
 
 # Define variables
 chart_name="robot-shop"
@@ -24,7 +32,7 @@ repo_url="https://github.com/instana/robot-shop/" # Replace with the actual Helm
 namespace="${DEMO_NAMESPACE:-robot-shop}" # Replace with the desired namespace if not default
 repo_dir="temp-helm-repo"
 helm_chart="K8s/helm"
-is_openshift="${IS_OPENSHIFT:-true}" # TODO: Automatically detect if the cluster is openshift or not
+is_openshift="${IS_OPENSHIFT:-$(detect_openshift)}"
 image_repo="mirror.gcr.io/robotshop"
 infra_registry="mirror.gcr.io/library" # mirror for Docker Hub official images (redis, rabbitmq)
 
@@ -59,6 +67,7 @@ kubectl get ns $namespace || kubectl create ns $namespace
 
 if [ "$is_openshift" = "true" ]; then
     # Based on https://github.com/instana/robot-shop/tree/master/OpenShift
+    echo "OpenShift cluster detected: $is_openshift"
     oc adm new-project $namespace
     oc adm policy add-scc-to-user anyuid -z default -n $namespace
     oc adm policy add-scc-to-user privileged -z default -n $namespace
