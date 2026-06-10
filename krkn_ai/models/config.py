@@ -66,6 +66,10 @@ class KubevirtScenarioConfig(BaseModel):
     enable: bool = False
 
 
+class StorageThrottleScenarioConfig(BaseModel):
+    enable: bool = False
+
+
 class BaselineConfig(BaseModel):
     enable: bool = True
     duration: int = 60 * 2  # 2 minutes
@@ -105,6 +109,9 @@ class ScenarioConfig(BaseModel):
     )
     kubevirt_scenarios: Optional[KubevirtScenarioConfig] = Field(
         alias="kubevirt-scenarios", default=None
+    )
+    storage_throttle: Optional[StorageThrottleScenarioConfig] = Field(
+        alias="storage-throttle", default=None
     )
 
 
