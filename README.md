@@ -22,7 +22,7 @@ An intelligent chaos engineering framework that uses genetic algorithms to evolv
 - Python 3.11+
 - `uv` package manager
 - [podman](https://podman.io/)
-- [helm](https://helm.sh/docs/intro/install/)
+- [helm 3.x](https://helm.sh/docs/v3/intro/install/)
 - Kubernetes/OpenShift cluster kubeconfig
 
 ## 🚀 Getting Started
