@@ -25,7 +25,10 @@ class TestRunShell:
         assert logs == ""
 
     @patch("krkn_ai.utils.subprocess.Popen")
-    def test_permission_error_returns_empty_string_and_127(self, mock_popen):
+    @patch("krkn_ai.utils.shutil.which", return_value="/usr/bin/podman")
+    def test_permission_error_returns_empty_string_and_127(
+        self, mock_which, mock_popen
+    ):
         """Test that run_shell catches OSError (like PermissionError during Popen) and returns empty string and 127"""
         mock_popen.side_effect = PermissionError("Mocked permission error")
         logs, returncode = run_shell("podman --version")
