@@ -147,7 +147,7 @@ class TestCalculatePointFitness:
 
         ts = datetime.datetime(2024, 1, 1, 12, 0, 0)
 
-        with pytest.raises(FitnessFunctionCalculationError) as exc_info:
+        with pytest.raises(FitnessFunctionConfigurationError) as exc_info:
             calc._query_prometheus_single_point(
                 "kube_pod_container_status_restarts_total",
                 ts,
@@ -250,7 +250,7 @@ class TestCalculateRangeFitness:
         start = datetime.datetime(2024, 1, 1, 12, 0, 0)
         end = datetime.datetime(2024, 1, 1, 12, 10, 0)
 
-        with pytest.raises(FitnessFunctionCalculationError) as exc_info:
+        with pytest.raises(FitnessFunctionConfigurationError) as exc_info:
             calc.calculate_range_fitness(
                 start,
                 end,
