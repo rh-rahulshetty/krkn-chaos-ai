@@ -148,6 +148,7 @@ def run(
             with open(os.path.join(new_output_path, "results.json"), "w") as f:
                 json.dump({"status": STATUS_STARTED}, f)
 
+            # Dispatch to the selected algorithm engine
             if parsed_config.algorithm == AlgorithmType.genetic:
                 engine = GeneticAlgorithm(
                     run_uuid=run_uuid,

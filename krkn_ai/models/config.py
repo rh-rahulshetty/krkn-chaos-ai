@@ -327,17 +327,20 @@ class ConfigFile(BaseModel):
 
     cluster_components: ClusterComponents
 
+    # Algorithm selector + per-algorithm config section
     algorithm: AlgorithmType = AlgorithmType.genetic
     genetic: GeneticAlgorithmConfig = GeneticAlgorithmConfig()
 
     @model_validator(mode="before")
     @classmethod
     def migrate_flat_algorithm_fields(cls, data):
+        """Backward compat: auto-migrate old flat GA fields into genetic: section."""
         if not isinstance(data, dict):
             return data
         if "algorithm" not in data:
             data["algorithm"] = "genetic"
         if "genetic" not in data:
+            # Collect any flat GA fields and move them under genetic:
             ga_data = {}
             for field in GeneticAlgorithmConfig.model_fields:
                 if field in data:

@@ -23,6 +23,7 @@ class StoppingCriteriaEvaluator:
     def evaluate(
         self, cur_generation: int, elapsed_time: float, population_size: int
     ) -> Tuple[bool, str]:
+        # Hard limits first (generation count, duration), then adaptive criteria
         if (
             self.config.duration is None
             and self.config.generations is not None

@@ -47,6 +47,7 @@ class GeneticAlgorithm(BaseEngine):
 
         super().__init__(config, output_dir, format, runner_type, run_uuid)
 
+        # Shorthand for GA-specific params; shared fields stay on self.config
         self.algo_config: GeneticAlgorithmConfig = config.genetic
         self.population: List[BaseScenario] = []
         self.best_of_generation: List[CommandRunResult] = []
@@ -80,13 +81,16 @@ class GeneticAlgorithm(BaseEngine):
         start_time = time.time()
         cur_generation = 0
 
+        # Baseline run establishes cluster health before chaos testing
         self.run_baseline()
 
+        # Initial population (Gen 0)
         self.population = self.create_population(self.algo_config.population_size)
 
         while True:
             elapsed_time = time.time() - start_time
 
+            # Check stopping criteria before evaluating next generation
             if self._check_and_stop(cur_generation, elapsed_time):
                 break
 
@@ -132,11 +136,13 @@ class GeneticAlgorithm(BaseEngine):
             if self._check_and_stop(cur_generation, elapsed_after_eval):
                 break
 
+            # Repopulate: each pair of parents produces 2 offspring
             self.population = []
             for _ in range(self.algo_config.population_size // 2):
                 parent1, parent2 = self.select_parents(fitness_scores)
                 child1, child2 = None, None
                 if rng.random() < self.algo_config.composition_rate:
+                    # Composition: merge two scenarios into a composite
                     child1 = self.composition(
                         copy.deepcopy(parent1), copy.deepcopy(parent2)
                     )
@@ -149,6 +155,7 @@ class GeneticAlgorithm(BaseEngine):
                     child2 = self.mutate(child2)
                     self.population.append(child2)
                 else:
+                    # Standard crossover: swap parameters between parents
                     child1, child2 = self.crossover(
                         copy.deepcopy(parent1), copy.deepcopy(parent2)
                     )
@@ -158,6 +165,7 @@ class GeneticAlgorithm(BaseEngine):
                     self.population.append(child1)
                     self.population.append(child2)
 
+            # Inject random members to diversify the gene pool
             if rng.random() < self.algo_config.population_injection_rate:
                 self.population.extend(
                     self.create_population(self.algo_config.population_injection_size)
@@ -234,11 +242,13 @@ class GeneticAlgorithm(BaseEngine):
                 f"must be less than or equal to max ({cfg.max})"
             )
 
+        # Increase rate when stagnating, decrease when improving
         if improvement < cfg.threshold:
             self.current_scenario_mutation_rate *= 1.2
         else:
             self.current_scenario_mutation_rate *= 0.9
 
+        # Clamp to configured bounds
         self.current_scenario_mutation_rate = max(
             cfg.min, min(self.current_scenario_mutation_rate, cfg.max)
         )
