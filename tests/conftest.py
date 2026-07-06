@@ -119,9 +119,9 @@ def mock_command_run_result(mock_scenario):
 @pytest.fixture
 def genetic_algorithm(minimal_config, temp_output_dir):
     """Create a GeneticAlgorithm instance for testing"""
-    with patch("krkn_ai.algorithm.genetic.KrknRunner"):
+    with patch("krkn_ai.algorithm.base.KrknRunner"):
         with patch(
-            "krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios"
+            "krkn_ai.algorithm.base.ScenarioFactory.generate_valid_scenarios"
         ) as mock_gen:
             mock_gen.return_value = [("pod_scenarios", Mock)]
             ga = GeneticAlgorithm(
@@ -133,12 +133,12 @@ def genetic_algorithm(minimal_config, temp_output_dir):
 @pytest.fixture
 def genetic_algorithm_with_mock_runner(minimal_config, temp_output_dir):
     """Create a GeneticAlgorithm instance with mock runner for testing"""
-    with patch("krkn_ai.algorithm.genetic.KrknRunner") as mock_runner_class:
+    with patch("krkn_ai.algorithm.base.KrknRunner") as mock_runner_class:
         mock_runner = Mock()
         mock_runner_class.return_value = mock_runner
 
         with patch(
-            "krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios"
+            "krkn_ai.algorithm.base.ScenarioFactory.generate_valid_scenarios"
         ) as mock_gen:
             mock_gen.return_value = [("pod_scenarios", Mock)]
             ga = GeneticAlgorithm(

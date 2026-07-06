@@ -14,9 +14,9 @@ class TestGeneticAlgorithmInitialization:
 
     def test_init_with_valid_config(self, minimal_config, temp_output_dir):
         """Test initialization with valid config and config file creation"""
-        with patch("krkn_ai.algorithm.genetic.KrknRunner"):
+        with patch("krkn_ai.algorithm.base.KrknRunner"):
             with patch(
-                "krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios"
+                "krkn_ai.algorithm.base.ScenarioFactory.generate_valid_scenarios"
             ) as mock_gen:
                 mock_gen.return_value = [("pod_scenarios", Mock)]
                 run_uuid = "test-run-uuid"
@@ -35,9 +35,9 @@ class TestGeneticAlgorithmInitialization:
 
     def test_init_generates_unique_run_uuid(self, minimal_config, temp_output_dir):
         """Test initialization generates a unique run UUID per instance"""
-        with patch("krkn_ai.algorithm.genetic.KrknRunner"):
+        with patch("krkn_ai.algorithm.base.KrknRunner"):
             with patch(
-                "krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios"
+                "krkn_ai.algorithm.base.ScenarioFactory.generate_valid_scenarios"
             ) as mock_gen:
                 mock_gen.return_value = [("pod_scenarios", Mock)]
                 first = GeneticAlgorithm(
@@ -54,9 +54,9 @@ class TestGeneticAlgorithmInitialization:
     ):
         """Test raises error when population size is less than 2"""
         minimal_config.population_size = 1
-        with patch("krkn_ai.algorithm.genetic.KrknRunner"):
+        with patch("krkn_ai.algorithm.base.KrknRunner"):
             with patch(
-                "krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios"
+                "krkn_ai.algorithm.base.ScenarioFactory.generate_valid_scenarios"
             ) as mock_gen:
                 mock_gen.return_value = [("pod_scenarios", Mock)]
                 with pytest.raises(
@@ -69,9 +69,9 @@ class TestGeneticAlgorithmInitialization:
     def test_init_with_odd_population_size(self, minimal_config, temp_output_dir):
         """Test odd population size is adjusted to even"""
         minimal_config.population_size = 5
-        with patch("krkn_ai.algorithm.genetic.KrknRunner"):
+        with patch("krkn_ai.algorithm.base.KrknRunner"):
             with patch(
-                "krkn_ai.algorithm.genetic.ScenarioFactory.generate_valid_scenarios"
+                "krkn_ai.algorithm.base.ScenarioFactory.generate_valid_scenarios"
             ) as mock_gen:
                 mock_gen.return_value = [("pod_scenarios", Mock)]
                 ga = GeneticAlgorithm(
@@ -99,7 +99,7 @@ class TestGeneticAlgorithmCoreMethods:
                         "sort_fitness_result_csv",
                     ) as mock_sort:
                         with patch(
-                            "krkn_ai.algorithm.genetic.JSONSummaryReporter"
+                            "krkn_ai.algorithm.genetic.engine.JSONSummaryReporter"
                         ) as mock_summary_reporter:
                             mock_reporter_instance = Mock()
                             mock_summary_reporter.return_value = mock_reporter_instance
