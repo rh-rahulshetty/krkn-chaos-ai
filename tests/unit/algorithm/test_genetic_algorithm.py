@@ -53,7 +53,7 @@ class TestGeneticAlgorithmInitialization:
         self, minimal_config, temp_output_dir
     ):
         """Test raises error when population size is less than 2"""
-        minimal_config.population_size = 1
+        minimal_config.genetic.population_size = 1
         with patch("krkn_ai.algorithm.base.KrknRunner"):
             with patch(
                 "krkn_ai.algorithm.base.ScenarioFactory.generate_valid_scenarios"
@@ -68,7 +68,7 @@ class TestGeneticAlgorithmInitialization:
 
     def test_init_with_odd_population_size(self, minimal_config, temp_output_dir):
         """Test odd population size is adjusted to even"""
-        minimal_config.population_size = 5
+        minimal_config.genetic.population_size = 5
         with patch("krkn_ai.algorithm.base.KrknRunner"):
             with patch(
                 "krkn_ai.algorithm.base.ScenarioFactory.generate_valid_scenarios"
@@ -77,7 +77,7 @@ class TestGeneticAlgorithmInitialization:
                 ga = GeneticAlgorithm(
                     config=minimal_config, output_dir=temp_output_dir, format="yaml"
                 )
-                assert ga.config.population_size == 6
+                assert ga.algo_config.population_size == 6
 
 
 class TestGeneticAlgorithmCoreMethods:

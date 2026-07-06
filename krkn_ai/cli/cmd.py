@@ -13,6 +13,7 @@ from krkn_ai.utils.logger import init_logger, get_logger
 
 from krkn_ai.algorithm.genetic import GeneticAlgorithm
 from krkn_ai.models.app import KrknRunnerType
+from krkn_ai.models.config import AlgorithmType
 from krkn_ai.dashboard.manager import DashboardManager
 from krkn_ai.models.custom_errors import (
     FitnessFunctionCalculationError,
@@ -147,16 +148,21 @@ def run(
             with open(os.path.join(new_output_path, "results.json"), "w") as f:
                 json.dump({"status": STATUS_STARTED}, f)
 
-            genetic = GeneticAlgorithm(
-                run_uuid=run_uuid,
-                config=parsed_config,
-                output_dir=new_output_path,
-                format=format,
-                runner_type=enum_runner_type,
-            )
-            genetic.simulate()
+            if parsed_config.algorithm == AlgorithmType.genetic:
+                engine = GeneticAlgorithm(
+                    run_uuid=run_uuid,
+                    config=parsed_config,
+                    output_dir=new_output_path,
+                    format=format,
+                    runner_type=enum_runner_type,
+                )
+            else:
+                logger.error("Unknown algorithm type: %s", parsed_config.algorithm)
+                exit(1)
 
-            genetic.save()
+            engine.simulate()
+
+            engine.save()
             run_success = True
         except (
             MissingScenarioError,

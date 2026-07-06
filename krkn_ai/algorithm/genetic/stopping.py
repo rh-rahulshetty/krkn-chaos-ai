@@ -1,14 +1,16 @@
 from typing import List, Tuple
 
 from krkn_ai.models.app import CommandRunResult
-from krkn_ai.models.config import ConfigFile
+from krkn_ai.models.config import GeneticAlgorithmConfig
 from krkn_ai.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
 class StoppingCriteriaEvaluator:
-    def __init__(self, config: ConfigFile, best_of_generation: List[CommandRunResult]):
+    def __init__(
+        self, config: GeneticAlgorithmConfig, best_of_generation: List[CommandRunResult]
+    ):
         self.config = config
         self.best_of_generation = best_of_generation
         self.saturation_stagnant_generations = 0

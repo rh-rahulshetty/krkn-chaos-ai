@@ -30,8 +30,8 @@ class TestRunCommand:
 
             config_dict = {
                 "kubeconfig_file_path": minimal_config.kubeconfig_file_path,
-                "generations": minimal_config.generations,
-                "population_size": minimal_config.population_size,
+                "generations": minimal_config.genetic.generations,
+                "population_size": minimal_config.genetic.population_size,
                 "fitness_function": {
                     "query": minimal_config.fitness_function.query,
                     "type": minimal_config.fitness_function.type.value,
@@ -81,8 +81,8 @@ class TestRunCommand:
 
             config_dict = {
                 "kubeconfig_file_path": minimal_config.kubeconfig_file_path,
-                "generations": minimal_config.generations,
-                "population_size": minimal_config.population_size,
+                "generations": minimal_config.genetic.generations,
+                "population_size": minimal_config.genetic.population_size,
                 "fitness_function": {
                     "query": minimal_config.fitness_function.query,
                     "type": minimal_config.fitness_function.type.value,
@@ -199,8 +199,8 @@ class TestRunCommand:
 
             config_dict = {
                 "kubeconfig_file_path": minimal_config.kubeconfig_file_path,
-                "generations": minimal_config.generations,
-                "population_size": minimal_config.population_size,
+                "generations": minimal_config.genetic.generations,
+                "population_size": minimal_config.genetic.population_size,
                 "fitness_function": {
                     "query": minimal_config.fitness_function.query,
                     "type": minimal_config.fitness_function.type.value,
@@ -247,8 +247,8 @@ class TestRunCommand:
 
             config_dict = {
                 "kubeconfig_file_path": minimal_config.kubeconfig_file_path,
-                "generations": minimal_config.generations,
-                "population_size": minimal_config.population_size,
+                "generations": minimal_config.genetic.generations,
+                "population_size": minimal_config.genetic.population_size,
                 "fitness_function": {
                     "query": minimal_config.fitness_function.query,
                     "type": minimal_config.fitness_function.type.value,

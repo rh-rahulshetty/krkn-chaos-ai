@@ -9,7 +9,7 @@ from krkn_ai.algorithm.base import BaseEngine
 from krkn_ai.algorithm.genetic.stopping import StoppingCriteriaEvaluator
 from krkn_ai.constants import STATUS_IN_PROGRESS
 from krkn_ai.models.app import CommandRunResult, KrknRunnerType
-from krkn_ai.models.config import ConfigFile, SelectionStrategy
+from krkn_ai.models.config import ConfigFile, GeneticAlgorithmConfig, SelectionStrategy
 from krkn_ai.models.custom_errors import PopulationSizeError, UniqueScenariosError
 from krkn_ai.models.scenario.base import (
     Scenario,
@@ -36,25 +36,30 @@ class GeneticAlgorithm(BaseEngine):
         runner_type: KrknRunnerType = None,
         run_uuid: Optional[str] = None,
     ):
-        if config.population_size < 2:
+        if config.genetic.population_size < 2:
             raise PopulationSizeError("Population size should be at least 2")
 
-        if config.population_size % 2 != 0:
+        if config.genetic.population_size % 2 != 0:
             logger.debug(
                 "Population size is odd, making it even for the genetic algorithm."
             )
-            config.population_size += 1
+            config.genetic.population_size += 1
 
         super().__init__(config, output_dir, format, runner_type, run_uuid)
 
+        self.algo_config: GeneticAlgorithmConfig = config.genetic
         self.population: List[BaseScenario] = []
         self.best_of_generation: List[CommandRunResult] = []
         self.completed_generations: int = 0
         self.stagnant_generations = 0
-        self.current_scenario_mutation_rate: float = self.config.scenario_mutation_rate
+        self.current_scenario_mutation_rate: float = (
+            self.algo_config.scenario_mutation_rate
+        )
 
         self.generations_reporter = GenerationsReporter(self.output_dir, self.format)
-        self.stopping = StoppingCriteriaEvaluator(self.config, self.best_of_generation)
+        self.stopping = StoppingCriteriaEvaluator(
+            self.algo_config, self.best_of_generation
+        )
 
     def optimize(self):
         return self.simulate()
@@ -77,7 +82,7 @@ class GeneticAlgorithm(BaseEngine):
 
         self.run_baseline()
 
-        self.population = self.create_population(self.config.population_size)
+        self.population = self.create_population(self.algo_config.population_size)
 
         while True:
             elapsed_time = time.time() - start_time
@@ -85,8 +90,8 @@ class GeneticAlgorithm(BaseEngine):
             if self._check_and_stop(cur_generation, elapsed_time):
                 break
 
-            if self.config.duration is not None:
-                remaining_time = self.config.duration - elapsed_time
+            if self.algo_config.duration is not None:
+                remaining_time = self.algo_config.duration - elapsed_time
                 logger.debug(
                     "Elapsed time: %s, Remaining: %s",
                     format_duration(elapsed_time),
@@ -128,10 +133,10 @@ class GeneticAlgorithm(BaseEngine):
                 break
 
             self.population = []
-            for _ in range(self.config.population_size // 2):
+            for _ in range(self.algo_config.population_size // 2):
                 parent1, parent2 = self.select_parents(fitness_scores)
                 child1, child2 = None, None
-                if rng.random() < self.config.composition_rate:
+                if rng.random() < self.algo_config.composition_rate:
                     child1 = self.composition(
                         copy.deepcopy(parent1), copy.deepcopy(parent2)
                     )
@@ -153,9 +158,9 @@ class GeneticAlgorithm(BaseEngine):
                     self.population.append(child1)
                     self.population.append(child2)
 
-            if rng.random() < self.config.population_injection_rate:
+            if rng.random() < self.algo_config.population_injection_rate:
                 self.population.extend(
-                    self.create_population(self.config.population_injection_size)
+                    self.create_population(self.algo_config.population_injection_size)
                 )
 
     def _check_and_stop(self, cur_generation: int, elapsed_time: float) -> bool:
@@ -184,6 +189,7 @@ class GeneticAlgorithm(BaseEngine):
         summary_reporter = JSONSummaryReporter(
             run_uuid=self.run_uuid,
             config=self.config,
+            algo_config=self.algo_config,
             seen_population=self.seen_population,
             best_of_generation=self.best_of_generation,
             baseline_result=self.baseline_result,
@@ -201,7 +207,7 @@ class GeneticAlgorithm(BaseEngine):
             )
 
     def adapt_mutation_rate(self):
-        cfg = self.config.adaptive_mutation
+        cfg = self.algo_config.adaptive_mutation
 
         if not cfg.enable:
             return
@@ -345,12 +351,12 @@ class GeneticAlgorithm(BaseEngine):
         return True, new_scenario
 
     def select_parents(self, fitness_scores: List[CommandRunResult]):
-        if self.config.selection_strategy == SelectionStrategy.tournament:
+        if self.algo_config.selection_strategy == SelectionStrategy.tournament:
             parent1 = self.tournament_selection(
-                fitness_scores, self.config.tournament_size
+                fitness_scores, self.algo_config.tournament_size
             )
             parent2 = self.tournament_selection(
-                fitness_scores, self.config.tournament_size
+                fitness_scores, self.algo_config.tournament_size
             )
             return parent1, parent2
 
@@ -430,7 +436,7 @@ class GeneticAlgorithm(BaseEngine):
             return scenario_a, scenario_b
         else:
             for param_type in common_params:
-                if rng.random() < self.config.crossover_rate:
+                if rng.random() < self.algo_config.crossover_rate:
                     a_value = self.__get_param_value(scenario_a, param_type)
                     b_value = self.__get_param_value(scenario_b, param_type)
 

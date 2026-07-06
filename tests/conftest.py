@@ -9,6 +9,7 @@ import pytest
 
 from krkn_ai.models.config import (
     ConfigFile,
+    GeneticAlgorithmConfig,
     FitnessFunction,
     FitnessFunctionType,
     ScenarioConfig,
@@ -63,13 +64,12 @@ def minimal_config(mock_cluster_components):
     """Create minimal configuration"""
     return ConfigFile(
         kubeconfig_file_path="/tmp/test-kubeconfig",
-        generations=2,
-        population_size=4,
         fitness_function=FitnessFunction(
             query="test_query", type=FitnessFunctionType.point
         ),
         scenario=ScenarioConfig(pod_scenarios=PodScenarioConfig(enable=True)),
         cluster_components=mock_cluster_components,
+        genetic=GeneticAlgorithmConfig(generations=2, population_size=4),
     )
 
 
