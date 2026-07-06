@@ -21,7 +21,7 @@ from krkn_ai.models.custom_errors import (
     UniqueScenariosError,
 )
 from krkn_ai.utils.fs import read_config_from_file, save_discovery
-from krkn_ai.utils.cluster_manager import ClusterManager
+from krkn_ai.cluster import ClusterManager
 from krkn_ai.models.scenario.factory import ScenarioFactory
 
 

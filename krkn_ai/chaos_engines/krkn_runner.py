@@ -21,7 +21,7 @@ from krkn_ai.utils.fs import env_is_truthy
 from krkn_ai.utils.logger import get_logger, is_verbose
 from krkn_ai.utils.prometheus import create_prometheus_client
 from krkn_ai.utils.rng import rng
-from krkn_ai.utils.telemetry_parser import extract_telemetry_from_log
+from krkn_ai.chaos_engines.telemetry_parser import extract_telemetry_from_log
 
 logger = get_logger(__name__)
 
