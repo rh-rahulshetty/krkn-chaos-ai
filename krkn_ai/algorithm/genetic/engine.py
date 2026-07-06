@@ -36,6 +36,15 @@ class GeneticAlgorithm(BaseEngine):
         runner_type: KrknRunnerType = None,
         run_uuid: Optional[str] = None,
     ):
+        if config.population_size < 2:
+            raise PopulationSizeError("Population size should be at least 2")
+
+        if config.population_size % 2 != 0:
+            logger.debug(
+                "Population size is odd, making it even for the genetic algorithm."
+            )
+            config.population_size += 1
+
         super().__init__(config, output_dir, format, runner_type, run_uuid)
 
         self.population: List[BaseScenario] = []
@@ -46,15 +55,6 @@ class GeneticAlgorithm(BaseEngine):
 
         self.generations_reporter = GenerationsReporter(self.output_dir, self.format)
         self.stopping = StoppingCriteriaEvaluator(self.config, self.best_of_generation)
-
-        if self.config.population_size < 2:
-            raise PopulationSizeError("Population size should be at least 2")
-
-        if self.config.population_size % 2 != 0:
-            logger.debug(
-                "Population size is odd, making it even for the genetic algorithm."
-            )
-            self.config.population_size += 1
 
     def optimize(self):
         return self.simulate()
