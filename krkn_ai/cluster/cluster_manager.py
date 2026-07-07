@@ -6,7 +6,7 @@ from kubernetes.client.models import V1PodSpec
 from krkn_ai.utils import run_shell
 from krkn_ai.utils.logger import get_logger
 from krkn_ai.models.custom_errors import ShellCommandTimeoutError
-from krkn_ai.utils.pattern_matcher import PatternMatcher
+from krkn_ai.cluster.pattern_matcher import PatternMatcher
 from krkn_ai.models.cluster_components import (
     ClusterComponents,
     Container,

@@ -5,7 +5,7 @@ ClusterManager unit tests
 import pytest
 from unittest.mock import Mock, patch
 
-from krkn_ai.utils.cluster_manager import ClusterManager
+from krkn_ai.cluster import ClusterManager
 from krkn_ai.models.cluster_components import Namespace
 
 
@@ -27,7 +27,7 @@ class TestClusterManager:
     def cluster_manager(self, mock_krkn_k8s):
         """Create ClusterManager instance with mocked dependencies"""
         with patch(
-            "krkn_ai.utils.cluster_manager.KrknKubernetes", return_value=mock_krkn_k8s
+            "krkn_ai.cluster.cluster_manager.KrknKubernetes", return_value=mock_krkn_k8s
         ):
             return ClusterManager(kubeconfig="/tmp/test-kubeconfig")
 
@@ -36,7 +36,7 @@ class TestClusterManager:
     ):
         """Test that ClusterManager initializes correctly with kubeconfig"""
         with patch(
-            "krkn_ai.utils.cluster_manager.KrknKubernetes", return_value=mock_krkn_k8s
+            "krkn_ai.cluster.cluster_manager.KrknKubernetes", return_value=mock_krkn_k8s
         ):
             manager = ClusterManager(kubeconfig="/tmp/test-kubeconfig")
             assert manager.kubeconfig == "/tmp/test-kubeconfig"
@@ -106,7 +106,8 @@ class TestClusterManager:
 
         # Mock node interfaces
         with patch(
-            "krkn_ai.utils.cluster_manager.run_shell", return_value=("eth0\nens5\n", 0)
+            "krkn_ai.cluster.cluster_manager.run_shell",
+            return_value=("eth0\nens5\n", 0),
         ):
             # Provide pattern that matches "default" namespace
             components = cluster_manager.discover_components(
@@ -414,7 +415,7 @@ class TestClusterManager:
 
         # Mock node interfaces
         with patch(
-            "krkn_ai.utils.cluster_manager.run_shell",
+            "krkn_ai.cluster.cluster_manager.run_shell",
             return_value=("eth0\nens5\nlo\n", 0),
         ):
             nodes = cluster_manager.list_nodes(
@@ -452,7 +453,7 @@ class TestClusterManager:
         )
 
         # Mock interfaces failure
-        with patch("krkn_ai.utils.cluster_manager.run_shell", return_value=("", 1)):
+        with patch("krkn_ai.cluster.cluster_manager.run_shell", return_value=("", 1)):
             nodes = cluster_manager.list_nodes()
 
         assert len(nodes) == 1
@@ -464,7 +465,7 @@ class TestClusterManager:
     def test_list_node_interfaces_filters_network_interfaces(self, cluster_manager):
         """Test list_node_interfaces filters and returns only ens/eth interfaces"""
         with patch(
-            "krkn_ai.utils.cluster_manager.run_shell",
+            "krkn_ai.cluster.cluster_manager.run_shell",
             return_value=("eth0\nens5\nlo\novs-system\nbr-ex\n", 0),
         ):
             interfaces = cluster_manager.list_node_interfaces("test-node")
@@ -479,7 +480,7 @@ class TestClusterManager:
         self, cluster_manager
     ):
         """Test list_node_interfaces returns empty list when shell command fails"""
-        with patch("krkn_ai.utils.cluster_manager.run_shell", return_value=("", 1)):
+        with patch("krkn_ai.cluster.cluster_manager.run_shell", return_value=("", 1)):
             interfaces = cluster_manager.list_node_interfaces("test-node")
 
         assert interfaces == []
@@ -510,7 +511,7 @@ class TestClusterManager:
         )
 
         with patch(
-            "krkn_ai.utils.cluster_manager.run_shell",
+            "krkn_ai.cluster.cluster_manager.run_shell",
             return_value=("eth0\n", 0),
         ):
             nodes = cluster_manager.list_nodes()
@@ -551,7 +552,7 @@ class TestClusterManager:
             return ("eth0\n", 0)
 
         with patch(
-            "krkn_ai.utils.cluster_manager.run_shell", side_effect=fake_run_shell
+            "krkn_ai.cluster.cluster_manager.run_shell", side_effect=fake_run_shell
         ):
             nodes = cluster_manager.list_nodes()
 
