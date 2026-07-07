@@ -42,6 +42,7 @@ dev = [
 ]
 
 [tool.setuptools_scm]
+fallback_version = "0.0.0"
 
 [tool.setuptools.packages.find]
 include = ["krkn_ai*"]
