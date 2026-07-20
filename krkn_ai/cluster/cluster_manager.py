@@ -405,8 +405,13 @@ class ClusterManager:
                 "Filtered %d vmis in namespace %s", len(vmi_list), namespace.name
             )
             return vmi_list
-        except Exception:
-            logger.warning("Unable to find VMIs in namespace %s", namespace.name)
+        except Exception as e:
+            logger.warning(
+                "Unable to find VMIs in namespace %s: %s",
+                namespace.name,
+                e,
+                exc_info=True,
+            )
             return []
 
     def list_nodes(
@@ -645,4 +650,6 @@ class ClusterManager:
         u_uc = unit.capitalize()
         if u_uc in _mem_power2:
             return int(val * _mem_power2[u_uc])
+        if u_uc in _mem_power10:
+            return int(val * _mem_power10[u_uc])
         raise ValueError(f"Unknown memory unit: {unit}")
