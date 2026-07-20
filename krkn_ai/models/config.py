@@ -8,6 +8,7 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
+    AnyHttpUrl,
 )
 import krkn_ai.constants as const
 from krkn_ai.models.cluster_components import ClusterComponents
@@ -170,7 +171,7 @@ class HealthCheckApplicationConfig(BaseModel):
     """
 
     name: str
-    url: str
+    url: AnyHttpUrl
     status_code: int = 200  # Expected status code
     timeout: int = 4  # in seconds
     interval: int = 2  # in seconds
@@ -219,12 +220,23 @@ class ElasticConfig(BaseModel):
     """
 
     enable: bool = False  # Enable Elasticsearch integration
-    server: str = ""  # Elasticsearch URL (e.g., https://elasticsearch.example.com)
+    server: Optional[AnyHttpUrl] = (
+        None  # Elasticsearch URL (e.g., https://elasticsearch.example.com)
+    )
     port: int = 9200  # Elasticsearch port
     username: str = ""  # Elasticsearch username
     password: str = Field(exclude=True, default="")  # Elasticsearch password
     index: str = "krkn-ai-metrics"  # Index name for storing Krkn-AI results
     verify_certs: bool = True  # Verify SSL certificates
+
+    @model_validator(mode="after")
+    def server_required_when_enabled(self) -> "ElasticConfig":
+        if self.enable and self.server is None:
+            raise ValueError(
+                "ElasticConfig.server must be set when enable=True. "
+                "Please provide a valid Elasticsearch URL."
+            )
+        return self
 
 
 class HealthCheckResult(BaseModel):
