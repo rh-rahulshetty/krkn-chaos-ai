@@ -23,6 +23,9 @@ from krkn_ai.reporter.json_summary_reporter import JSONSummaryReporter
 from krkn_ai.utils.logger import get_logger
 from krkn_ai.utils.output import format_duration
 from krkn_ai.utils.rng import rng
+from krkn_ai.utils.weight_learning import learn_weights, save_learned_weights
+
+LEARNED_WEIGHTS_FILE = "learned_weights.json"
 
 logger = get_logger(__name__)
 
@@ -209,10 +212,24 @@ class GeneticAlgorithm(BaseEngine):
         )
         summary_reporter.save(self.output_dir)
 
+        self._save_learned_weights()
+
         if self.elastic_client is not None:
             self.elastic_client.index_run_summary(
                 summary_reporter.generate_summary(), self.run_uuid
             )
+
+    def _save_learned_weights(self):
+        """Learn per-query weights from this run's scenarios for future runs to seed."""
+        items = self.config.fitness_function.items
+        if not items:
+            return
+        weights = learn_weights(self.seen_population.values(), items)
+        if not weights:
+            return
+        path = os.path.join(self.output_dir, LEARNED_WEIGHTS_FILE)
+        save_learned_weights(weights, path)
+        logger.info("Saved learned fitness weights to %s", path)
 
     def adapt_mutation_rate(self):
         cfg = self.algo_config.adaptive_mutation
@@ -230,11 +247,12 @@ class GeneticAlgorithm(BaseEngine):
 
         if improvement < cfg.threshold:
             self.stagnant_generations += 1
+            if self.stagnant_generations < cfg.generations:
+                return
+            rate_factor = 1.2
         else:
             self.stagnant_generations = 0
-
-        if self.stagnant_generations < cfg.generations:
-            return
+            rate_factor = 0.9
 
         if cfg.min > cfg.max:
             raise ValueError(
@@ -243,20 +261,19 @@ class GeneticAlgorithm(BaseEngine):
             )
 
         # Increase rate when stagnating, decrease when improving
-        if improvement < cfg.threshold:
-            self.current_scenario_mutation_rate *= 1.2
-        else:
-            self.current_scenario_mutation_rate *= 0.9
+        old_rate = self.current_scenario_mutation_rate
+        self.current_scenario_mutation_rate *= rate_factor
 
         # Clamp to configured bounds
         self.current_scenario_mutation_rate = max(
             cfg.min, min(self.current_scenario_mutation_rate, cfg.max)
         )
 
-        logger.info(
-            "Adaptive mutation triggered | scenario_mutation_rate=%.4f",
-            self.current_scenario_mutation_rate,
-        )
+        if self.current_scenario_mutation_rate != old_rate:
+            logger.info(
+                "Adaptive mutation triggered | scenario_mutation_rate=%.4f",
+                self.current_scenario_mutation_rate,
+            )
 
         self.stagnant_generations = 0
 
