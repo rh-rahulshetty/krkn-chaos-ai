@@ -125,6 +125,9 @@ case "$MODE_LOWER" in
 
         echo "Executing: ${CMD[*]}"
         "${CMD[@]}"
+        if [ -n "$KRKNAI_RUN_UID" ]; then
+            printf '{"exitCode":0}\n' > "$OUTPUT_DIR/.krkn-ai-complete"
+        fi
         ;;
 
     *)
