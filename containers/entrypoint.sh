@@ -41,16 +41,6 @@ fi
 # Convert MODE to lowercase for comparison
 MODE_LOWER=$(echo "$MODE" | tr '[:upper:]' '[:lower:]')
 
-mark_run_complete() {
-    local exit_code=$?
-    if [ "$MODE_LOWER" = "run" ]; then
-        mkdir -p "$OUTPUT_DIR"
-        printf '{"exitCode":%d}\n' "$exit_code" > "$OUTPUT_DIR/.krkn-ai-complete"
-    fi
-}
-
-trap mark_run_complete EXIT
-
 case "$MODE_LOWER" in
     discover)
         echo "Running in DISCOVER mode..."

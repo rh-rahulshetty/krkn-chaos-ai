@@ -27,42 +27,6 @@ from krkn_ai.utils.catalog import recommend_fitness_queries
 from krkn_ai.utils.weight_learning import load_learned_weights
 from krkn_ai.cluster import ClusterManager
 from krkn_ai.models.scenario.factory import ScenarioFactory
-from krkn_ai.templates.generator import create_krkn_ai_template
-
-class DiscoveryError(RuntimeError):
-    """The target cluster could not be discovered."""
-
-
-def discover_config(
-    kubeconfig: str,
-    namespace: str = ".*",
-    pod_label: str = ".*",
-    node_label: str = ".*",
-    skip_pod_name: str | None = None,
-    rendered_kubeconfig: str | None = None,
-) -> str:
-    """Discover cluster components and render a Krkn-AI configuration in memory."""
-    if not kubeconfig or not os.path.exists(kubeconfig):
-        raise DiscoveryError("Kubeconfig file not found.")
-
-    try:
-        cluster_components = ClusterManager(kubeconfig).discover_components(
-            namespace_pattern=namespace,
-            pod_label_pattern=pod_label,
-            node_label_pattern=node_label,
-            skip_pod_name=skip_pod_name,
-        )
-    except (ApiException, MaxRetryError) as exc:
-        raise DiscoveryError("Unable to connect to the Kubernetes API.") from exc
-    except Exception as exc:
-        raise DiscoveryError("Cluster component discovery failed.") from exc
-
-    cluster_components_data = cluster_components.model_dump(
-        mode="json", warnings="none", exclude_defaults=True
-    )
-    return create_krkn_ai_template(
-        rendered_kubeconfig or kubeconfig, cluster_components_data
-    )
 
 
 @click.group(context_settings={"show_default": True})
@@ -331,24 +295,25 @@ def discover(
 
     if kubeconfig == "" or kubeconfig is None or not os.path.exists(kubeconfig):
         logger.error("Kubeconfig file not found.")
-        sys.exit(1)
+        exit(1)
 
     try:
         cluster_manager = ClusterManager(kubeconfig)
+
         cluster_components = cluster_manager.discover_components(
             namespace_pattern=namespace,
             pod_label_pattern=pod_label,
             node_label_pattern=node_label,
             skip_pod_name=skip_pod_name,
         )
-    except ApiException as exc:
-        logger.error("Kubernetes API error: %s", exc)
+    except ApiException as e:
+        logger.error("Kubernetes API error: %s", e)
         sys.exit(1)
-    except MaxRetryError as exc:
-        logger.error("Failed to connect to Kubernetes cluster: %s", exc)
+    except MaxRetryError as e:
+        logger.error("Failed to connect to Kubernetes cluster: %s", e)
         sys.exit(1)
-    except Exception as exc:
-        logger.error("An unexpected error occurred during discovery: %s", exc)
+    except Exception as e:
+        logger.error("An unexpected error occurred during discovery: %s", e)
         sys.exit(1)
 
     # recommend only for overwrite, or when no file exists for other strategies
