@@ -1,0 +1,8 @@
+generations: 1
+population_size: 2
+fitness_function:
+  query: up
+  type: point
+scenario:
+  pod_scenarios:
+    enable: true
